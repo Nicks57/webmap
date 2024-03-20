@@ -58,7 +58,6 @@ function StartStreetview (e) {
 var waypoints = [];
 
 var routeControl = L.Routing.control({
-    createMarker: function() { return null; }
     }).addTo(map);
 
 routeControl.hide();
