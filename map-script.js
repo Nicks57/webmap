@@ -28,9 +28,13 @@ var map = L.map('map', {
     contextmenu: true,
     contextmenuWidth: 180,
     contextmenuItems: [{
-        text: 'Démarrer Streetview ici',
-        callback: StartStreetview
-    }],
+            text: 'Démarrer Streetview ici',
+            callback: StartStreetview
+        },
+        {
+            text: 'Ajouter point',
+            callback: AddWaypoint
+        }],
     layers: [osm]});
 
 var baseMaps = {
@@ -43,11 +47,66 @@ var baseMaps = {
 
 var layerControl = L.control.layers(baseMaps).addTo(map);
 
-//Context Menu
+//Google StreetView
 function StartStreetview (e) {
     let lat = e.latlng.lat.toPrecision(8);
     let lon = e.latlng.lng.toPrecision(8);
     window.open("https://maps.google.com/maps?q=&layer=c&cbll=" + lat + "," + lon + "&cbp=11,0,0,0", "_blank");
+}
+
+//Routing Machine
+var waypoints = [];
+
+var routeControl = L.Routing.control({
+    createMarker: function() { return null; }
+    }).addTo(map);
+
+routeControl.hide();
+
+function AddWaypoint (e) {
+    var newMarker = new L.marker(e.latlng, {
+        draggable: 'true',
+        contextmenu: true,
+        contextmenuItems: [{
+            text: 'Supprimer point',
+            callback: DeleteWaypoint,
+            index: 0
+        }, {
+            separator: true,
+            index: 1
+        }]
+    }).addTo(markerGroup);
+    newMarker
+        .on('dragend', dragEndHandler);
+
+    let lat = e.latlng.lat.toPrecision(8);
+    let lng = e.latlng.lng.toPrecision(8);
+
+    waypoints.push({"ID": newMarker._leaflet_id, "lat": e.latlng.lat, "lng": e.latlng.lng});
+    console.log("Marker added. Waypoints array updated. ID: " + newMarker._leaflet_id + ", Lat: " + e.latlng.lat + ", Long: " + e.latlng.lng);
+
+    if(markerGroup.getLayers().length > 1)
+    { 
+        routeControl.setWaypoints(waypoints);
+        console.log("Route has been updated");
+    }
+}
+
+function DeleteWaypoint (e) {
+    console.log("Marker deleted. ID: " + e.relatedTarget._leaflet_id + ", Lat: " + e.relatedTarget._latlng.lat + ", Long: " + e.relatedTarget._latlng.lat);
+    markerGroup.removeLayer(e.relatedTarget._leaflet_id);
+    const index = waypoints.findIndex(p => p.ID == e.relatedTarget._leaflet_id);
+    waypoints.splice(index, 1);
+    routeControl.setWaypoints(waypoints);
+    console.log("Route has been updated");
+}
+
+function dragEndHandler(e) {
+    console.log("Draging of marker ended. ID is " + e.target._leaflet_id + ". New position is " + e.target._latlng.lat + "," + e.target._latlng.lng);
+    const index = waypoints.findIndex(p => p.ID == e.target._leaflet_id);
+    waypoints[index] = {"ID": e.target._leaflet_id, "lat": e.target._latlng.lat, "lng": e.target._latlng.lng};
+    routeControl.setWaypoints(waypoints);
+    console.log("Route has been updated");
 }
 
 
@@ -55,25 +114,8 @@ function StartStreetview (e) {
 var polyline = L.polyline([]).addTo(map);
 var markerGroup = L.layerGroup().addTo(map);
 
-//Right click handler
-function onMapClick(e) {
-    var newMarker = new L.marker(e.latlng, {
-        draggable: 'true',
-    }).addTo(markerGroup);
-    console.log(newMarker._leaflet_id);
-    newMarker
-        .on('dragstart', dragStartHandler)
-        .on('click', dragStartHandler)
-        .on('drag', dragHandler)
-        .on('dragend', dragEndHandler);
-    polyline.addLatLng(L.latLng(e.latlng));
-    map.setView((e.latlng));
-    displaylatlong();
-}
 
-//map.on('contextmenu', onMapClick);
-
-
+//Download GPX Button
 //https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
 var download = function (content, fileName, mimeType) {
     var a = document.createElement('a');
