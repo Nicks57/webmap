@@ -59,6 +59,7 @@ var waypoints = [];
 
 var routeControl = L.Routing.control({
     createMarker: function() { return null; }
+    lineOptions : { addWaypoints: false }
     }).addTo(map);
 
 routeControl.hide();
