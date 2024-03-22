@@ -56,10 +56,22 @@ function StartStreetview (e) {
 var waypoints = [];
 var markerGroup = L.layerGroup().addTo(map);
 
+//Old version with OSM Demo servers
+//var routeControl = L.Routing.control({
+//    createMarker: function() { return null; },
+//    lineOptions : { addWaypoints: false }
+ //   }).addTo(map);
+
 var routeControl = L.Routing.control({
+    router: L.Routing.graphHopper('939a6776-5fa7-4366-be32-1c53dd09de4f', {
+        urlParameters: {
+            vehicle: 'foot'
+        }
+    }),
     createMarker: function() { return null; },
     lineOptions : { addWaypoints: false }
     }).addTo(map);
+
 
 routeControl.hide();
 
