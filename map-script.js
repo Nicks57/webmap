@@ -1,5 +1,3 @@
-var gpxtrack = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?><gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="peter-thomson.com" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd"><trk><name>28-MAR-18 04:04:44 PM</name><trkseg>';
-
 //Create Map layers
 var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -56,6 +54,7 @@ function StartStreetview (e) {
 
 //Routing Machine
 var waypoints = [];
+var markerGroup = L.layerGroup().addTo(map);
 
 var routeControl = L.Routing.control({
     createMarker: function() { return null; },
@@ -110,23 +109,31 @@ function dragEndHandler(e) {
     console.log("Route has been updated");
 }
 
-
-//Create Polyline for GPX tracks
-var polyline = L.polyline([]).addTo(map);
-var markerGroup = L.layerGroup().addTo(map);
-
-
 //Download GPX Button
-//https://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
-var download = function (content, fileName, mimeType) {
+var download = function (fileName, mimeType) {
+    var coord = [];
+    for(let i = 0; i < routeControl._routes.length; i++) {
+        for (let j = 0; j < routeControl._routes[i].coordinates.length; j++) {
+            coord.push(routeControl._routes[i].coordinates[j]);
+        }
+    }
+
+    var timestamp = new Date().toLocaleString('en-GB');
+    gpxtrack = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n<trk><name>' + timestamp + '</name>\n<trkseg>\n';
+
+    for (var i = 0; i < coord.length; i++) {
+        gpxtrack += '<trkpt lat="' + coord[i].lat + '" lon="' + coord[i].lng + '"></trkpt>\n';
+    }
+    gpxtrack += '</trkseg>\n</trk>\n</gpx>';
+
     var a = document.createElement('a');
     mimeType = mimeType || 'application/octet-stream';
     if (navigator.msSaveBlob) { // IE10
-        navigator.msSaveBlob(new Blob([content], {
+        navigator.msSaveBlob(new Blob([gpxtrack], {
             type: mimeType
         }), fileName);
     } else if (URL && 'download' in a) { //html5 A[download]
-        a.href = URL.createObjectURL(new Blob([content], {
+        a.href = URL.createObjectURL(new Blob([gpxtrack], {
             type: mimeType
         }));
         a.setAttribute('download', fileName);
@@ -134,6 +141,6 @@ var download = function (content, fileName, mimeType) {
         a.click();
         document.body.removeChild(a);
     } else {
-        location.href = 'data:application/octet-stream,' + encodeURIComponent(content); // only this mime type is supported
+        location.href = 'data:application/octet-stream,' + encodeURIComponent(gpxtrack); // only this mime type is supported
     }
 }
