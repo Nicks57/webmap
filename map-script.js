@@ -156,3 +156,8 @@ var download = function (fileName, mimeType) {
         location.href = 'data:application/octet-stream,' + encodeURIComponent(gpxtrack); // only this mime type is supported
     }
 }
+
+//About button
+function showInfo() {
+    alert("Version: 0.0.1")
+}
