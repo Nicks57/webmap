@@ -1,3 +1,35 @@
+//Sample GPX as string for debugging purposes
+const GPXDebug = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
+'<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n' +
+'<trk><name>GPX Debug Tracks</name>\n' +
+'<trkseg>\n' +
+'<trkpt lat="49.19648" lon="6.87825"></trkpt>\n' +
+'<trkpt lat="49.19652" lon="6.8781"></trkpt>\n' +
+'<trkpt lat="49.1966" lon="6.87799"></trkpt>\n' +
+'<trkpt lat="49.19615" lon="6.87726"></trkpt>\n' +
+'<trkpt lat="49.19494" lon="6.87891"></trkpt>\n' +
+'<trkpt lat="49.19494" lon="6.87892"></trkpt>\n' +
+'</trkseg>\n' +
+'<trkseg>\n' +
+'<trkpt lat="49.18578" lon="6.93061"></trkpt>\n' +
+'<trkpt lat="49.18577" lon="6.93061"></trkpt>\n' +
+'<trkpt lat="49.18578" lon="6.93084"></trkpt>\n' +
+'<trkpt lat="49.18632" lon="6.93772"></trkpt>\n' +
+'<trkpt lat="49.18648" lon="6.93912"></trkpt>\n' +
+'<trkpt lat="49.18646" lon="6.9393"></trkpt>\n' +
+'<trkpt lat="49.18643" lon="6.93948"></trkpt>\n' +
+'<trkpt lat="49.18638" lon="6.93959"></trkpt>\n' +
+'<trkpt lat="49.18543" lon="6.94096"></trkpt>\n' +
+'<trkpt lat="49.18388" lon="6.943"></trkpt>\n' +
+'<trkpt lat="49.18271" lon="6.9446"></trkpt>\n' +
+'<trkpt lat="49.18035" lon="6.94773"></trkpt>\n' +
+'<trkpt lat="49.1799" lon="6.9486"></trkpt>\n' +
+'<trkpt lat="49.17887" lon="6.95088"></trkpt>\n' +
+'</trkseg>\n' +
+'</trk>\n' +
+'</gpx>';
+//************* */
+
 //Create Map layers
 var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -45,6 +77,7 @@ var baseMaps = {
 
 var layerControl = L.control.layers(baseMaps).addTo(map);
 
+//************************************ */
 //Google StreetView
 function StartStreetview (e) {
     let lat = e.latlng.lat.toPrecision(8);
@@ -52,16 +85,17 @@ function StartStreetview (e) {
     window.open("https://maps.google.com/maps?q=&layer=c&cbll=" + lat + "," + lon + "&cbp=11,0,0,0", "_blank");
 }
 
+//************************************ */
 //Routing Machine
 var waypoints = [];
 var markerGroup = L.layerGroup().addTo(map);
 
-//Old version with OSM Demo servers
-//var routeControl = L.Routing.control({
-//    createMarker: function() { return null; },
-//    lineOptions : { addWaypoints: false }
- //   }).addTo(map);
-
+//Demo version with OSM Demo servers. Use it for some debugging tasks
+/*var routeControl = L.Routing.control({
+    createMarker: function() { return null; },
+    lineOptions : { addWaypoints: false }
+    }).addTo(map);
+*/
 var routeControl = L.Routing.control({
     router: L.Routing.graphHopper('939a6776-5fa7-4366-be32-1c53dd09de4f', {
         urlParameters: {
@@ -121,6 +155,33 @@ function dragEndHandler(e) {
     console.log("Route has been updated");
 }
 
+//************************************ */
+//Load GPX database files
+var gpx = GPXDebug; // GPX as string used for debugging
+
+var fileArray = [
+    ["tracks/db/Validated-Anytime.gpx", "red", "Rouge"]
+];
+
+for (const file of fileArray) {
+    new L.GPXHelper(file[0], file[1]).on('loaded', function(e) {
+        var gpx = e.target;
+        layerControl.addOverlay(gpx, gpx.get_name() + " (" + file[2] + ")");
+    }).addTo(map);
+}
+
+/*new L.GPX(gpx, {async: true, gpx_options:{ joinTrackSegments: false}}).on('loaded', function(e) {
+    var gpx = e.target;
+    layerControl.addOverlay(gpx, gpx.get_name());
+}).addTo(map);*/
+
+/*new L.GPXHelper(GPXDebug).on('loaded', function(e) {
+    var gpx = e.target;
+    layerControl.addOverlay(gpx, gpx.get_name());
+}).addTo(map);*/
+
+
+//************************************ */
 //Download GPX Button
 var download = function (fileName, mimeType) {
     var coord = [];
@@ -159,5 +220,5 @@ var download = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.0.1")
+    alert("Version: 0.1.0")
 }
