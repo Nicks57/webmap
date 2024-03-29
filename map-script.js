@@ -166,6 +166,7 @@ var fileArray = [
 for (const file of fileArray) {
     new L.GPXHelper(file[0], file[1]).on('loaded', function(e) {
         var gpx = e.target;
+        map.fitBounds(gpx.getBounds());
         layerControl.addOverlay(gpx, gpx.get_name() + " (" + file[2] + ")");
     }).addTo(map);
 }
@@ -220,5 +221,5 @@ var download = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.1.0")
+    alert("Version: 0.1.1")
 }
