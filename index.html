@@ -14,11 +14,13 @@
         <script src="leafletroutingmachine/leaflet-routing-machine.js"></script>
         <script src="leafletroutingmachine/lrm-graphhopper.js"></script>
 
+        <script src="gpx-helper.js"></script>
+
         <style>
             body { margin:0; padding:0; }
             #map { position: absolute; top:0; bottom:0; right:0; left:0; }
             #downloadGPXButton { position: absolute; bottom: 60px; left: 20px; padding: 10px; z-index: 400; }
-	    #aboutButton { position: absolute; bottom: 20px; left: 20px; padding: 10px; z-index: 400; }
+            #aboutButton { position: absolute; bottom: 20px; left: 20px; padding: 10px; z-index: 400; }
         </style>
 	</head>
 
@@ -26,7 +28,7 @@
         <div id="map"></div>
         
         <button id="downloadGPXButton" onclick="download('track.gpx', 'text/csv;encoding:utf-8')">Télécharger trace GPX</button>
-	<button id="aboutButton" onclick="showInfo()">À propos</button>
+        <button id="aboutButton" onclick="showInfo()">À propos</button>
 
         <script src="map-script.js"></script>
 	</body>
