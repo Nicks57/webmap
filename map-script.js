@@ -93,7 +93,8 @@ var markerGroup = L.layerGroup().addTo(map);
 //Demo version with OSM Demo servers. Use it for some debugging tasks
 /*var routeControl = L.Routing.control({
     createMarker: function() { return null; },
-    lineOptions : { addWaypoints: false }
+    lineOptions : { addWaypoints: false,
+                    styles: [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'blue', opacity: 1, weight: 2}] }
     }).addTo(map);
 */
 var routeControl = L.Routing.control({
@@ -160,7 +161,8 @@ function dragEndHandler(e) {
 var gpx = GPXDebug; // GPX as string used for debugging
 
 var fileArray = [
-    ["tracks/db/Validated-Anytime.gpx", "#159917", "Vert"]
+    ["tracks/db/Validated-Anytime.gpx", "#159917", "Vert"],
+    ["tracks/db/Prohibited.gpx", "#e01e10", "Rouge"]
 ];
 
 for (const file of fileArray) {
@@ -221,5 +223,5 @@ var download = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.1.1")
+    alert("Version: 0.1.2")
 }
