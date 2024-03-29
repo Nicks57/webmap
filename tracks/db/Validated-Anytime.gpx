@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">
+	<trk><name>Validées - Par tout temps</name>
+		<trkseg>
+			<trkpt lat="49.18578" lon="6.93061"></trkpt>
+			<trkpt lat="49.18577" lon="6.93061"></trkpt>
+			<trkpt lat="49.18578" lon="6.93084"></trkpt>
+			<trkpt lat="49.18632" lon="6.93772"></trkpt>
+			<trkpt lat="49.18648" lon="6.93912"></trkpt>
+			<trkpt lat="49.18646" lon="6.9393"></trkpt>
+			<trkpt lat="49.18643" lon="6.93948"></trkpt>
+			<trkpt lat="49.18638" lon="6.93959"></trkpt>
+			<trkpt lat="49.18543" lon="6.94096"></trkpt>
+			<trkpt lat="49.18388" lon="6.943"></trkpt>
+			<trkpt lat="49.18271" lon="6.9446"></trkpt>
+			<trkpt lat="49.18035" lon="6.94773"></trkpt>
+			<trkpt lat="49.1799" lon="6.9486"></trkpt>
+			<trkpt lat="49.17887" lon="6.95088"></trkpt>
+		</trkseg>
+		<trkseg>
+			<trkpt lat="49.17787" lon="6.969"></trkpt>
+			<trkpt lat="49.17741" lon="6.97006"></trkpt>
+			<trkpt lat="49.17728" lon="6.97044"></trkpt>
+			<trkpt lat="49.17719" lon="6.97079"></trkpt>
+			<trkpt lat="49.17635" lon="6.97295"></trkpt>
+			<trkpt lat="49.17596" lon="6.97374"></trkpt>
+			<trkpt lat="49.17485" lon="6.97612"></trkpt>
+			<trkpt lat="49.17256" lon="6.98028"></trkpt>
+			<trkpt lat="49.17225" lon="6.98071"></trkpt>
+			<trkpt lat="49.17131" lon="6.98237"></trkpt>
+			<trkpt lat="49.17036" lon="6.9841"></trkpt>
+			<trkpt lat="49.1688" lon="6.98773"></trkpt>
+			<trkpt lat="49.1686" lon="6.98814"></trkpt>
+			<trkpt lat="49.16728" lon="6.99109"></trkpt>
+			<trkpt lat="49.16691" lon="6.99184"></trkpt>
+			<trkpt lat="49.16651" lon="6.99285"></trkpt>
+			<trkpt lat="49.16624" lon="6.99344"></trkpt>
+			<trkpt lat="49.16612" lon="6.99379"></trkpt>
+			<trkpt lat="49.1658" lon="6.9945"></trkpt>
+			<trkpt lat="49.16567" lon="6.99475"></trkpt>
+			<trkpt lat="49.16483" lon="6.99557"></trkpt>
+			<trkpt lat="49.16448" lon="6.99595"></trkpt>
+			<trkpt lat="49.16408" lon="6.99642"></trkpt>
+			<trkpt lat="49.16341" lon="6.99713"></trkpt>
+			<trkpt lat="49.16257" lon="6.99811"></trkpt>
+			<trkpt lat="49.16187" lon="6.99888"></trkpt>
+			<trkpt lat="49.16115" lon="6.99956"></trkpt>
+			<trkpt lat="49.16025" lon="7.00058"></trkpt>
+			<trkpt lat="49.15987" lon="7.00093"></trkpt>
+			<trkpt lat="49.15961" lon="7.00121"></trkpt>
+			<trkpt lat="49.15922" lon="7.00172"></trkpt>
+			<trkpt lat="49.15891" lon="7.00203"></trkpt>
+			<trkpt lat="49.15781" lon="7.00322"></trkpt>
+			<trkpt lat="49.15759" lon="7.0035"></trkpt>
+			<trkpt lat="49.15743" lon="7.00379"></trkpt>
+			<trkpt lat="49.15728" lon="7.00427"></trkpt>
+			<trkpt lat="49.15697" lon="7.00589"></trkpt>
+			<trkpt lat="49.15678" lon="7.00732"></trkpt>
+			<trkpt lat="49.1565" lon="7.00914"></trkpt>
+			<trkpt lat="49.15646" lon="7.00948"></trkpt>
+			<trkpt lat="49.15645" lon="7.00979"></trkpt>
+		</trkseg>
+	</trk>
+</gpx>
