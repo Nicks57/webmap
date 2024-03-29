@@ -93,8 +93,7 @@ var markerGroup = L.layerGroup().addTo(map);
 //Demo version with OSM Demo servers. Use it for some debugging tasks
 /*var routeControl = L.Routing.control({
     createMarker: function() { return null; },
-    lineOptions : { addWaypoints: false,
-                    styles: [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'blue', opacity: 1, weight: 2}] }
+    lineOptions : { addWaypoints: false }
     }).addTo(map);
 */
 var routeControl = L.Routing.control({
@@ -104,7 +103,8 @@ var routeControl = L.Routing.control({
         }
     }),
     createMarker: function() { return null; },
-    lineOptions : { addWaypoints: false }
+    lineOptions : { addWaypoints: false,
+                    styles: [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'blue', opacity: 1, weight: 2}] }
     }).addTo(map);
 
 
@@ -223,5 +223,5 @@ var download = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.1.2")
+    alert("Version: 0.1.3")
 }
