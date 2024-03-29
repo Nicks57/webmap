@@ -160,7 +160,7 @@ function dragEndHandler(e) {
 var gpx = GPXDebug; // GPX as string used for debugging
 
 var fileArray = [
-    ["tracks/db/Validated-Anytime.gpx", "red", "Rouge"]
+    ["tracks/db/Validated-Anytime.gpx", "#159917", "Vert"]
 ];
 
 for (const file of fileArray) {
