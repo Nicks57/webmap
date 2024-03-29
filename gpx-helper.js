@@ -100,7 +100,7 @@ L.GPXHelper = L.FeatureGroup.extend({
             }
 
         // add track
-        var l = new L.polyline(coords, {color: color});
+        var l = new L.polyline(coords, {color: color, weight: 5});
         layers.push(l);
 
         return layers;
