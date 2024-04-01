@@ -15,10 +15,14 @@
         <script src="leafletroutingmachine/lrm-graphhopper.js"></script>
 
         <script src="gpx-helper.js"></script>
+        <!-- <script src="gpx.js"></script> -->
+        <script src="leaflet.filelayer.js"></script>
 
+        <title>Trail Webmap</title>
         <style>
             body { margin:0; padding:0; }
             #map { position: absolute; top:0; bottom:0; right:0; left:0; }
+            #inputfile { position: absolute; bottom: 100px; left: 20px; padding: 10px; z-index: 400; }
             #downloadGPXButton { position: absolute; bottom: 60px; left: 20px; padding: 10px; z-index: 400; }
             #aboutButton { position: absolute; bottom: 20px; left: 20px; padding: 10px; z-index: 400; }
         </style>
@@ -27,8 +31,13 @@
     <body>
         <div id="map"></div>
         
+        <!-- <button id="importGPXButton" onclick="importGPX()">Importer fichier GPX</button> -->
         <button id="downloadGPXButton" onclick="download('track.gpx', 'text/csv;encoding:utf-8')">Télécharger trace GPX</button>
         <button id="aboutButton" onclick="showInfo()">À propos</button>
+
+        <input type="file" id="inputfile" name="avatar" accept=".gpx" />
+
+
 
         <script src="map-script.js"></script>
 	</body>
