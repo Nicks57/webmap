@@ -53,8 +53,8 @@ var IGN = L.tileLayer('https://wxs.ign.fr/essentiels/geoportail/wmts?service=WMT
     tileSize: 256});
 
 var map = L.map('map', {
-    center: [49.18, 6.9],
-    zoom: 13,
+    center: [49, 7.2],
+    zoom: 10,
     contextmenu: true,
     contextmenuWidth: 180,
     contextmenuItems: [{
@@ -175,7 +175,6 @@ var fileArray = [
 for (const file of fileArray) {
     new L.GPXHelper(file[0], file[1]).on('loaded', function(e) {
         var gpx = e.target;
-        map.fitBounds(gpx.getBounds());
         layerControl.addOverlay(gpx, gpx.get_name() + " (" + file[2] + ")");
     }).addTo(map);
 }
