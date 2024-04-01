@@ -198,10 +198,10 @@ document.getElementById('inputfile')
         let fr = new FileReader();
         fr.onload = function () {
             var gpxContent = fr.result;
-            new L.GPXHelper(gpxContent, "red").on('loaded', function(e) {
+            new L.GPXHelper(gpxContent, "#a00af7").on('loaded', function(e) {
                 var gpx = e.target;
                 map.fitBounds(gpx.getBounds());
-                layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Rouge" + ")");
+                layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Violet" + ")");
             }).addTo(map);
         }
 
@@ -247,5 +247,5 @@ var download = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.2.0")
+    alert("Version: 0.2.1")
 }
