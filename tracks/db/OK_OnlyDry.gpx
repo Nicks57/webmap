@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">
+	<trk><name>DB - Ça glisse!</name>
+		<trkseg>
+			<trkpt lat="49.01393" lon="6.8942"></trkpt>
+			<trkpt lat="49.01392" lon="6.89421"></trkpt>
+			<trkpt lat="49.01161" lon="6.8868"></trkpt>
+			<trkpt lat="49.01161" lon="6.88679"></trkpt>
+			<trkpt lat="49.01102" lon="6.88697"></trkpt>
+			<trkpt lat="49.01006" lon="6.88732"></trkpt>
+			<trkpt lat="49.0077" lon="6.88828"></trkpt>
+			<trkpt lat="49.00595" lon="6.8896"></trkpt>
+			<trkpt lat="49.00459" lon="6.89067"></trkpt>
+			<trkpt lat="49.00446" lon="6.89079"></trkpt>
+			<trkpt lat="49.0033" lon="6.89169"></trkpt>
+		</trkseg>
+		<trkseg>
+			<trkpt lat="48.9520916" lon="6.894605">	</trkpt>
+			<trkpt lat="48.9523984" lon="6.8956931"></trkpt>
+			<trkpt lat="48.9525319" lon="6.8968712"></trkpt>
+			<trkpt lat="48.9526462" lon="6.8977966"></trkpt>
+			<trkpt lat="48.9527596" lon="6.8987936"></trkpt>
+			<trkpt lat="48.9528068" lon="6.8994642"></trkpt>
+			<trkpt lat="48.9528081" lon="6.8994783"></trkpt>
+			<trkpt lat="48.9528088" lon="6.8994857"></trkpt>
+			<trkpt lat="48.9531735" lon="6.8994136"></trkpt>
+			<trkpt lat="48.9535117" lon="6.899352"></trkpt>
+			<trkpt lat="48.9539833" lon="6.8992576"></trkpt>
+			<trkpt lat="48.9543629" lon="6.8991977"></trkpt>
+			<trkpt lat="48.9548894" lon="6.8991086"></trkpt>
+			<trkpt lat="48.9553827" lon="6.8990043"></trkpt>
+			<trkpt lat="48.9558486" lon="6.8988048"></trkpt>
+			<trkpt lat="48.9559226" lon="6.8986636"></trkpt>
+			<trkpt lat="48.9559246" lon="6.8986592"></trkpt>
+			<trkpt lat="48.9559234" lon="6.8982473"></trkpt>
+			<trkpt lat="48.9559014" lon="6.8972929"></trkpt>
+			<trkpt lat="48.9558419" lon="6.8966216"></trkpt>
+			<trkpt lat="48.9563599" lon="6.8964251"></trkpt>
+			<trkpt lat="48.956791" lon="6.8963616"></trkpt>
+			<trkpt lat="48.9567949" lon="6.8963549"></trkpt>
+			<trkpt lat="48.9567928" lon="6.8963553"></trkpt>
+			<trkpt lat="48.9568001" lon="6.8963483"></trkpt>
+			<trkpt lat="48.9568068" lon="6.8963446"></trkpt>
+		    <trkpt lat="48.9568048" lon="6.8963495"></trkpt>
+			<trkpt lat="48.956901" lon="6.8962776"></trkpt>
+		</trkseg>
+	</trk>
+</gpx>

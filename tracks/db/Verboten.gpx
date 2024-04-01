@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">
+	<trk><name>DB - Verboten!</name>
+		<trkseg>
+		<trkpt lat="49.04824" lon="6.87845"></trkpt>
+		<trkpt lat="49.04868" lon="6.87804"></trkpt>
+		<trkpt lat="49.04894" lon="6.87784"></trkpt>
+		<trkpt lat="49.04936" lon="6.87758"></trkpt>
+		<trkpt lat="49.04989" lon="6.87732"></trkpt>
+		<trkpt lat="49.05075" lon="6.87675"></trkpt>
+		</trkseg>
+	</trk>
+</gpx>
