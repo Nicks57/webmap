@@ -160,9 +160,16 @@ function dragEndHandler(e) {
 //Load GPX database files
 var gpx = GPXDebug; // GPX as string used for debugging
 
+
+// Sections Autorisées/praticable par tout temps            => DB - Tout Schuss (Vert)
+// Sections Autorisées/praticable par temps sec uniquement  => DB - Ça glisse! (Jaune)
+// Sections Tolérées                                        => DB - Tolérées (Rouge)
+// Sections Interdites                                      => DB - Verboten! (Noir)
 var fileArray = [
-    ["tracks/db/Validated-Anytime.gpx", "#159917", "Vert"],
-    ["tracks/db/Prohibited.gpx", "#e01e10", "Rouge"]
+    ["tracks/db/OK_Anytime.gpx", "#159917", "Vert"],
+    ["tracks/db/OK_OnlyDry.gpx", "#f7eb0a", "Jaune"],
+    ["tracks/db/Tolerated.gpx", "#f70a0a", "Rouge"],
+    ["tracks/db/Verboten.gpx", "#000000", "Noir"]
 ];
 
 for (const file of fileArray) {
@@ -183,6 +190,24 @@ for (const file of fileArray) {
     layerControl.addOverlay(gpx, gpx.get_name());
 }).addTo(map);*/
 
+
+//************************************ */
+//Import GPX Button
+document.getElementById('inputfile')
+    .addEventListener('change', function () {
+
+        let fr = new FileReader();
+        fr.onload = function () {
+            var gpxContent = fr.result;
+            new L.GPXHelper(gpxContent, "red").on('loaded', function(e) {
+                var gpx = e.target;
+                map.fitBounds(gpx.getBounds());
+                layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Rouge" + ")");
+            }).addTo(map);
+        }
+
+        fr.readAsText(this.files[0]);
+    })
 
 //************************************ */
 //Download GPX Button
@@ -223,5 +248,5 @@ var download = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.1.3")
+    alert("Version: 0.2.0")
 }
