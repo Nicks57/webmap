@@ -62,8 +62,12 @@ var map = L.map('map', {
             callback: StartStreetview
         },
         {
-            text: 'Ajouter point',
+            text: 'Ajouter point d\'itinéraire',
             callback: AddWaypoint
+        },
+        {
+            text: 'Ajouter marqueur',
+            callback: AddMarker
         }],
     layers: [osm]});
 
@@ -88,6 +92,7 @@ function StartStreetview (e) {
 //************************************ */
 //Routing Machine
 var waypoints = [];
+var markers = [];
 var markerGroup = L.layerGroup().addTo(map);
 
 //Demo version with OSM Demo servers. Use it for some debugging tasks
@@ -115,7 +120,7 @@ function AddWaypoint (e) {
         draggable: 'true',
         contextmenu: true,
         contextmenuItems: [{
-            text: 'Supprimer point',
+            text: 'Supprimer point d\'itinéraire',
             callback: DeleteWaypoint,
             index: 0
         }, {
@@ -130,7 +135,7 @@ function AddWaypoint (e) {
     let lng = e.latlng.lng.toPrecision(8);
 
     waypoints.push({"ID": newMarker._leaflet_id, "lat": e.latlng.lat, "lng": e.latlng.lng});
-    console.log("Marker added. Waypoints array updated. ID: " + newMarker._leaflet_id + ", Lat: " + e.latlng.lat + ", Long: " + e.latlng.lng);
+    console.log("Waypoint added. Waypoints array updated. ID: " + newMarker._leaflet_id + ", Lat: " + e.latlng.lat + ", Long: " + e.latlng.lng);
 
     if(markerGroup.getLayers().length > 1)
     { 
@@ -140,7 +145,7 @@ function AddWaypoint (e) {
 }
 
 function DeleteWaypoint (e) {
-    console.log("Marker deleted. ID: " + e.relatedTarget._leaflet_id + ", Lat: " + e.relatedTarget._latlng.lat + ", Long: " + e.relatedTarget._latlng.lat);
+    console.log("Waypoint deleted. ID: " + e.relatedTarget._leaflet_id + ", Lat: " + e.relatedTarget._latlng.lat + ", Long: " + e.relatedTarget._latlng.lat);
     markerGroup.removeLayer(e.relatedTarget._leaflet_id);
     const index = waypoints.findIndex(p => p.ID == e.relatedTarget._leaflet_id);
     waypoints.splice(index, 1);
@@ -149,11 +154,48 @@ function DeleteWaypoint (e) {
 }
 
 function dragEndHandler(e) {
-    console.log("Draging of marker ended. ID is " + e.target._leaflet_id + ". New position is " + e.target._latlng.lat + "," + e.target._latlng.lng);
+    console.log("Draging of waypoint ended. ID is " + e.target._leaflet_id + ". New position is " + e.target._latlng.lat + "," + e.target._latlng.lng);
     const index = waypoints.findIndex(p => p.ID == e.target._leaflet_id);
     waypoints[index] = {"ID": e.target._leaflet_id, "lat": e.target._latlng.lat, "lng": e.target._latlng.lng};
     routeControl.setWaypoints(waypoints);
     console.log("Route has been updated");
+}
+
+function AddMarker (e) {
+    var customIcon = L.icon({
+        iconUrl: 'res/marker-i-50x50.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker-info--static
+        iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
+        iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+        popupAnchor: [-3, -30] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+        });
+    var newMarker = new L.marker(e.latlng, {
+        draggable: 'true',
+        icon: customIcon,
+        contextmenu: true,
+        contextmenuItems: [{
+            text: 'Supprimer marqueur',
+            callback: DeleteMarker,
+            index: 0
+        }, {
+            separator: true,
+            index: 1
+        }]
+    }).addTo(markerGroup);
+    newMarker
+        .on('dragend', dragEndHandler);
+
+    let lat = e.latlng.lat.toPrecision(8);
+    let lng = e.latlng.lng.toPrecision(8);
+
+    markers.push({"ID": newMarker._leaflet_id, "lat": e.latlng.lat, "lng": e.latlng.lng});
+    console.log("Marker added. Markers array updated. ID: " + newMarker._leaflet_id + ", Lat: " + e.latlng.lat + ", Long: " + e.latlng.lng);
+}
+
+function DeleteMarker (e) {
+    console.log("Marker deleted. ID: " + e.relatedTarget._leaflet_id + ", Lat: " + e.relatedTarget._latlng.lat + ", Long: " + e.relatedTarget._latlng.lat);
+    markerGroup.removeLayer(e.relatedTarget._leaflet_id);
+    const index = markers.findIndex(p => p.ID == e.relatedTarget._leaflet_id);
+    markers.splice(index, 1);
 }
 
 //************************************ */
@@ -178,6 +220,10 @@ for (const file of fileArray) {
         layerControl.addOverlay(gpx, gpx.get_name() + " (" + file[2] + ")");
     }).addTo(map);
 }
+
+//Add Markers
+new L.GPXHelper("tracks/db/Markers.gpx", "").on('loaded', function(e) {
+}).addTo(map);
 
 /*new L.GPX(gpx, {async: true, gpx_options:{ joinTrackSegments: false}}).on('loaded', function(e) {
     var gpx = e.target;
@@ -210,7 +256,7 @@ document.getElementById('inputfile')
 
 //************************************ */
 //Download GPX Button
-var download = function (fileName, mimeType) {
+var downloadTrack = function (fileName, mimeType) {
     var coord = [];
     for(let i = 0; i < routeControl._routes.length; i++) {
         for (let j = 0; j < routeControl._routes[i].coordinates.length; j++) {
@@ -245,7 +291,36 @@ var download = function (fileName, mimeType) {
     }
 }
 
+//************************************ */
+//Download Markers Button
+var downloadMarkers = function (fileName, mimeType) {
+    gpxmarkers = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n';
+
+    for (var i = 0; i < markers.length; i++) {
+        gpxmarkers += '<wpt lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</wpt>\n';
+    }
+    gpxmarkers += '</gpx>';
+
+    var a = document.createElement('a');
+    mimeType = mimeType || 'application/octet-stream';
+    if (navigator.msSaveBlob) { // IE10
+        navigator.msSaveBlob(new Blob([gpxmarkers], {
+            type: mimeType
+        }), fileName);
+    } else if (URL && 'download' in a) { //html5 A[download]
+        a.href = URL.createObjectURL(new Blob([gpxmarkers], {
+            type: mimeType
+        }));
+        a.setAttribute('download', fileName);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } else {
+        location.href = 'data:application/octet-stream,' + encodeURIComponent(gpxmarkers); // only this mime type is supported
+    }
+}
+
 //About button
 function showInfo() {
-    alert("Version: 0.2.1")
+    alert("Version: 0.2.2")
 }
