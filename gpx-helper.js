@@ -70,6 +70,9 @@ L.GPXHelper = L.FeatureGroup.extend({
 
         // parse waypoints and add markers for each of them
         el = gpx.getElementsByTagName('wpt');
+        if(el.length > 0) {
+            console.log("Waypoint(s) found!");
+        }
         for (i = 0; i < el.length; i++) {
           var ll = new L.LatLng(
               el[i].getAttribute('lat'),
