@@ -68,6 +68,38 @@ L.GPXHelper = L.FeatureGroup.extend({
         this._info.name = name[0].textContent;
         }
 
+        // parse waypoints and add markers for each of them
+        el = gpx.getElementsByTagName('wpt');
+        for (i = 0; i < el.length; i++) {
+          var ll = new L.LatLng(
+              el[i].getAttribute('lat'),
+              el[i].getAttribute('lon'));
+  
+          var nameEl = el[i].getElementsByTagName('name');
+          var name = nameEl.length > 0 ? nameEl[0].textContent : '';
+  
+          var descEl = el[i].getElementsByTagName('desc');
+          var desc = descEl.length > 0 ? descEl[0].textContent : '';  
+
+          var customIcon = L.icon({
+            iconUrl: 'res/marker-i-50x50.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker-info--static
+            iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
+            iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+            popupAnchor: [-3, -30] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+            });
+  
+          var marker = new L.Marker(ll, {
+            clickable: true,
+            icon: customIcon,
+            title: name,
+            type: 'waypoint'
+          });
+
+          marker.bindPopup("<b>" + name + "</b>" + (desc.length > 0 ? '<br>' + desc : '')).openPopup();
+          this.fire('addpoint', { point: marker, point_type: 'waypoint', element: el[i] });
+          layers.push(marker);
+        }
+
         var tracks = gpx.getElementsByTagName('trk');
         for (i = 0; i < tracks.length; i++) {
             var track = tracks[i];
@@ -100,7 +132,7 @@ L.GPXHelper = L.FeatureGroup.extend({
             }
 
         // add track
-        var l = new L.polyline(coords, {color: color, weight: 5});
+        var l = new L.polyline(coords, {color: color, weight: 7});
         layers.push(l);
 
         return layers;
