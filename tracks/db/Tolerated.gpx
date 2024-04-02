@@ -162,5 +162,32 @@
 			<trkpt lat="48.87777" lon="7.3757"></trkpt>
 			<trkpt lat="48.87759" lon="7.37554"></trkpt>
 		</trkseg>
+		<trkseg>
+			<trkpt lat="49.07905" lon="7.36051"></trkpt>
+			<trkpt lat="49.07909" lon="7.36008"></trkpt>
+			<trkpt lat="49.07908" lon="7.35983"></trkpt>
+			<trkpt lat="49.07893" lon="7.35844"></trkpt>
+			<trkpt lat="49.07876" lon="7.35736"></trkpt>
+			<trkpt lat="49.07865" lon="7.35652"></trkpt>
+			<trkpt lat="49.0786" lon="7.35571"></trkpt>
+			<trkpt lat="49.07856" lon="7.35455"></trkpt>
+			<trkpt lat="49.07856" lon="7.35296"></trkpt>
+			<trkpt lat="49.0786" lon="7.35258"></trkpt>
+			<trkpt lat="49.07868" lon="7.35232"></trkpt>
+			<trkpt lat="49.0792" lon="7.35163"></trkpt>
+			<trkpt lat="49.07963" lon="7.35132"></trkpt>
+			<trkpt lat="49.08006" lon="7.35105"></trkpt>
+			<trkpt lat="49.0802" lon="7.351"></trkpt>
+			<trkpt lat="49.08027" lon="7.35103"></trkpt>
+			<trkpt lat="49.08032" lon="7.35115"></trkpt>
+			<trkpt lat="49.08166" lon="7.35611"></trkpt>
+			<trkpt lat="49.08175" lon="7.35635"></trkpt>
+			<trkpt lat="49.08315" lon="7.35851"></trkpt>
+			<trkpt lat="49.0845" lon="7.36052"></trkpt>
+			<trkpt lat="49.0865" lon="7.36235"></trkpt>
+			<trkpt lat="49.08662" lon="7.36252"></trkpt>
+			<trkpt lat="49.08723" lon="7.36354"></trkpt>
+			<trkpt lat="49.08788" lon="7.36463"></trkpt>
+		</trkseg>
 	</trk>
 </gpx>
