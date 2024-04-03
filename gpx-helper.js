@@ -1,19 +1,47 @@
 var L = L || require('leaflet');
 
+var _DEFAULT_MARKER_OPTS = {
+    addStartEndIcons: false,
+    startIconUrl: 'res/pin-icon-start.png',
+    endIconUrl: 'res/pin-icon-end.png',
+    wptIconUrl: 'res/marker-i-50x50_Orange.png',
+    iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
+    iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+    popupAnchor: [-3, -30], // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+    clickable: false
+  };
+var _DEFAULT_POLYLINE_OPTS = {
+    color: '#a00af7'  //Violet
+  };
+
 L.GPXHelper = L.FeatureGroup.extend({
-    initialize: function(gpx, color) { 
-      this._gpx = gpx;
-      this._color = color;
-      this._layers = {};
-      this._init_info();
+    initialize: function(gpx, options) { 
+        options.marker_options = this._merge_objs(
+            _DEFAULT_MARKER_OPTS,
+            options.marker_options || {});
+        options.polyline_options = this._merge_objs(
+            _DEFAULT_POLYLINE_OPTS,
+                options.polyline_options || {});
+
+        this._gpx = gpx;
+        this._layers = {};
+        this._init_info();
   
       if (gpx) {
-        this._parse(gpx, color);
+        this._parse(gpx, options);
       }
     },
 
     // Public methods
     get_name:            function() { return this._info.name; },
+
+    // Private methods
+    _merge_objs: function(a, b) {
+        var _ = {};
+        for (var attr in a) { _[attr] = a[attr]; }
+        for (var attr in b) { _[attr] = b[attr]; }
+        return _;
+    },
 
     _init_info: function() {
         this._info = {
@@ -34,11 +62,11 @@ L.GPXHelper = L.FeatureGroup.extend({
         req.send(null);
     },
 
-    _parse: function(input, color) {
+    _parse: function(input, options) {
         var _this = this;
 
         var cb = function(gpx) {
-            var layers = _this._parseGPX(gpx, color);
+            var layers = _this._parseGPX(gpx, options);
             if (!layers) {
                 _this.fire('error', { err: 'No parseable layers' });
                 return;
@@ -59,7 +87,7 @@ L.GPXHelper = L.FeatureGroup.extend({
         }
     },
 
-    _parseGPX: function(gpx, color) {
+    _parseGPX: function(gpx, options) {
         //this function parse all tracks. tracks are <trkpt> tags in one or more <trkseg> sections in each <trk>
         var layers = [];
 
@@ -85,14 +113,14 @@ L.GPXHelper = L.FeatureGroup.extend({
           var desc = descEl.length > 0 ? descEl[0].textContent : '';  
 
           var customIcon = L.icon({
-            iconUrl: 'res/marker-i-50x50.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker-info--static
-            iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
-            iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
-            popupAnchor: [-3, -30] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+            iconUrl: options.marker_options.wptIconUrl,
+            iconSize: options.marker_options.iconSize,
+            iconAnchor: options.marker_options.iconAnchor,
+            popupAnchor: options.marker_options.popupAnchor
             });
   
           var marker = new L.Marker(ll, {
-            clickable: true,
+            clickable: options.marker_options.clickable,
             icon: customIcon,
             title: name,
             type: 'waypoint'
@@ -108,7 +136,7 @@ L.GPXHelper = L.FeatureGroup.extend({
             var track = tracks[i];
             var segments = track.getElementsByTagName('trkseg');
             for (j = 0; j < segments.length; j++) {
-                layers = layers.concat(this._parseSegment(segments[j], 'trkpt', color));
+                layers = layers.concat(this._parseSegment(segments[j], 'trkpt', options));
             }
         }
 
@@ -119,7 +147,7 @@ L.GPXHelper = L.FeatureGroup.extend({
         }
     },
 
-    _parseSegment: function(line, tag, color) {
+    _parseSegment: function(line, tag, options) {
         var trkpts = line.getElementsByTagName(tag);
         if (!trkpts.length) return [];
 
@@ -135,8 +163,38 @@ L.GPXHelper = L.FeatureGroup.extend({
             }
 
         // add track
-        var l = new L.polyline(coords, {color: color, weight: 7});
+        var l = new L.polyline(coords, {color: options.polyline_options.color, weight: 7});
         layers.push(l);
+
+        if (options.marker_options.addStartEndIcons) {
+            // add start pin
+            var customIcon = L.icon({
+                iconUrl: options.marker_options.startIconUrl,
+                iconSize: options.marker_options.iconSize,
+                iconAnchor: options.marker_options.iconAnchor,
+                popupAnchor: options.marker_options.popupAnchor
+                });
+            var marker = new L.Marker(coords[0], {
+              clickable: false,
+              icon: customIcon
+            });
+
+            layers.push(marker);
+          
+            // add end pin
+            var customIcon = L.icon({
+                iconUrl: options.marker_options.endIconUrl,
+                iconSize: options.marker_options.iconSize,
+                iconAnchor: options.marker_options.iconAnchor,
+                popupAnchor: options.marker_options.popupAnchor
+                });
+            var marker = new L.Marker(coords[coords.length-1], {
+              clickable: false,
+              icon: customIcon
+            });
+
+            layers.push(marker);
+          }
 
         return layers;
     }
