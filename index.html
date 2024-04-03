@@ -19,25 +19,39 @@
         <script src="leaflet.filelayer.js"></script>
 
         <title>Trail Webmap</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body { margin:0; padding:0; }
             #map { position: absolute; top:0; bottom:0; right:0; left:0; }
-            #inputfile { position: absolute; bottom: 140px; left: 20px; padding: 10px; z-index: 400; }
             #downloadMarkersButton { position: absolute; bottom: 100px; left: 20px; padding: 10px; z-index: 400; }
             #downloadGPXButton { position: absolute; bottom: 60px; left: 20px; padding: 10px; z-index: 400; }
             #aboutButton { position: absolute; bottom: 20px; left: 20px; padding: 10px; z-index: 400; }
+
+            .custom-control-container {
+                padding: 5px;
+                border-radius: 5px;
+            }
+            .custom-control-button {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                cursor: pointer;
+                border-radius: 3px;
+                display: block;
+                margin-bottom: 7px;
+            }
+            .custom-control-button:hover {
+                background-color: #0056b3;
+            }
         </style>
 	</head>
 
     <body>
         <div id="map"></div>
-        
-        <!-- <button id="importGPXButton" onclick="importGPX()">Importer fichier GPX</button> -->
-        <button id="downloadMarkersButton" onclick="downloadMarkers('waypoints.gpx', 'text/csv;encoding:utf-8')">Télécharger marqueurs</button>
-        <button id="downloadGPXButton" onclick="downloadTrack('track.gpx', 'text/csv;encoding:utf-8')">Télécharger trace GPX</button>
-        <button id="aboutButton" onclick="showInfo()">À propos</button>
 
-        <input type="file" id="inputfile" name="avatar" accept=".gpx" />
+        <input type="file" id="file-input" accept=".gpx" style="display: none;" />
 
 
 
