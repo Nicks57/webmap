@@ -81,6 +81,56 @@ var baseMaps = {
 
 var layerControl = L.control.layers(baseMaps).addTo(map);
 
+// Create a custom control
+var CustomControl = L.Control.extend({
+    options: {
+        position: 'topleft',
+    },
+
+    onAdd: function(map) {
+        var container = L.DomUtil.create('div', 'custom-control-container');
+        var button1 = L.DomUtil.create('button', 'custom-control-button', container);
+        button1.innerHTML = 'Importer fichier GPX';
+
+        button1.onclick = function() {
+            document.getElementById('file-input').click();
+        };
+
+        var button2 = L.DomUtil.create('button', 'custom-control-button', container);
+        button2.innerHTML = 'Télécharger marqueurs';
+
+        // Add your custom action here
+        button2.onclick = function() {
+            downloadMarkers('waypoints.gpx', 'text/csv;encoding:utf-8')
+        };
+
+        var button3 = L.DomUtil.create('button', 'custom-control-button', container);
+        button3.innerHTML = 'Télécharger trace GPX';
+
+        // Add your custom action here
+        button3.onclick = function() {
+            downloadTrack('track.gpx', 'text/csv;encoding:utf-8')
+        };
+
+        var button4 = L.DomUtil.create('button', 'custom-control-button', container);
+        button4.innerHTML = 'À propos';
+
+        // Add your custom action here
+        button4.onclick = function() {
+            showInfo()
+        };
+
+        return container;
+    },
+
+    onRemove: function(map) {
+        // Cleanup when removed
+    }
+});
+
+  // Add the custom control to the map
+(new CustomControl()).addTo(map);
+
 //************************************ */
 //Google StreetView
 function StartStreetview (e) {
@@ -163,7 +213,7 @@ function dragEndHandler(e) {
 
 function AddMarker (e) {
     var customIcon = L.icon({
-        iconUrl: 'res/marker-i-50x50.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker-info--static
+        iconUrl: 'res/marker-i-50x50_Orange.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
         iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
         iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
         popupAnchor: [-3, -30] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
@@ -204,54 +254,82 @@ var gpx = GPXDebug; // GPX as string used for debugging
 
 
 // Sections Autorisées/praticable par tout temps            => DB - Tout Schuss (Vert)
-// Sections Autorisées/praticable par temps sec uniquement  => DB - Ça glisse! (Jaune)
+// Sections Autorisées/praticable par temps sec uniquement  => DB - Ça glisse! (Orange)
 // Sections Tolérées                                        => DB - Tolérées (Rouge)
 // Sections Interdites                                      => DB - Verboten! (Noir)
 var fileArray = [
-    ["tracks/db/OK_Anytime.gpx", "#159917", "Vert"],
-    ["tracks/db/OK_OnlyDry.gpx", "#f7eb0a", "Jaune"],
-    ["tracks/db/Tolerated.gpx", "#f70a0a", "Rouge"],
-    ["tracks/db/Verboten.gpx", "#000000", "Noir"]
+    ["tracks/db/OK_Anytime.gpx", "#159917"],
+    ["tracks/db/OK_OnlyDry.gpx", "#f2ab11"],
+    ["tracks/db/Tolerated.gpx", "#f70a0a"],
+    ["tracks/db/Verboten.gpx", "#000000"]
 ];
 
 for (const file of fileArray) {
-    new L.GPXHelper(file[0], file[1]).on('loaded', function(e) {
+    new L.GPXHelper(file[0], {
+        polyline_options : {color: file[1]}
+    }).on('loaded', function(e) {
         var gpx = e.target;
-        layerControl.addOverlay(gpx, gpx.get_name() + " (" + file[2] + ")");
+        layerControl.addOverlay(gpx, gpx.get_name());
     }).addTo(map);
 }
 
 //Add Markers
-new L.GPXHelper("tracks/db/Markers.gpx", "").on('loaded', function(e) {
-}).addTo(map);
+new L.GPXHelper("tracks/db/Markers.gpx", {
+        marker_options : {
+            wptIconUrl : 'res/marker-i-50x50_Bleu.png',
+        }
+    }).on('loaded', function(e) {
+    }).addTo(map);
 
 /*new L.GPX(gpx, {async: true, gpx_options:{ joinTrackSegments: false}}).on('loaded', function(e) {
     var gpx = e.target;
     layerControl.addOverlay(gpx, gpx.get_name());
 }).addTo(map);*/
 
-/*new L.GPXHelper(GPXDebug).on('loaded', function(e) {
-    var gpx = e.target;
-    layerControl.addOverlay(gpx, gpx.get_name());
-}).addTo(map);*/
+/*new L.GPXHelper(GPXDebug, {
+    polyline_options : {color: "#159917"}
+    }).on('loaded', function(e) {
+        var gpx = e.target;
+        layerControl.addOverlay(gpx, gpx.get_name());
+    }).addTo(map);*/
 
+
+// Attendre que les overlays soient chargés
+setTimeout(function() {
+    // Accédez aux éléments DOM des étiquettes de couche d'overlay
+    var overlayLabels = document.querySelectorAll('.leaflet-control-layers-overlays label');
+
+    // Changez les couleurs des étiquettes de couche d'overlay
+    for (let i = 0; i < fileArray.length; i++) {
+        overlayLabels[i].style.color = fileArray[i][1]; 
+    }
+    // Changez les couleurs d'autres couches d'overlay comme souhaité
+}, 1000); // Attendez 1000 millisecondes (1 seconde) avant d'exécuter le code
 
 //************************************ */
 //Import GPX Button
-document.getElementById('inputfile')
-    .addEventListener('change', function () {
-
-        let fr = new FileReader();
-        fr.onload = function () {
-            var gpxContent = fr.result;
-            new L.GPXHelper(gpxContent, "#a00af7").on('loaded', function(e) {
+document.getElementById('file-input')
+    .addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var gpxContent = e.target.result;;
+            new L.GPXHelper(gpxContent, {
+                marker_options : {
+                    addStartEndIcons: true,
+                    wptIconUrl : 'res/marker-i-50x50_Violet.png',
+                },
+                polyline_options : {
+                    color: '#a00af7'  //Violet
+                }
+                }).on('loaded', function(e) {
                 var gpx = e.target;
                 map.fitBounds(gpx.getBounds());
                 layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Violet" + ")");
             }).addTo(map);
         }
 
-        fr.readAsText(this.files[0]);
+        reader.readAsText(file);
     })
 
 //************************************ */
@@ -322,5 +400,5 @@ var downloadMarkers = function (fileName, mimeType) {
 
 //About button
 function showInfo() {
-    alert("Version: 0.2.2")
+    alert("Version: 0.3.0")
 }
