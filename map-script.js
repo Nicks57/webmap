@@ -146,12 +146,13 @@ var markers = [];
 var markerGroup = L.layerGroup().addTo(map);
 
 //Demo version with OSM Demo servers. Use it for some debugging tasks
-/*var routeControl = L.Routing.control({
-    createMarker: function() { return null; },
-    lineOptions : { addWaypoints: false }
-    }).addTo(map);
-*/
 var routeControl = L.Routing.control({
+    createMarker: function() { return null; },
+    lineOptions : { addWaypoints: false,
+                    styles: [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'blue', opacity: 1, weight: 2}] }
+    }).addTo(map);
+
+/*var routeControl = L.Routing.control({
     router: L.Routing.graphHopper('939a6776-5fa7-4366-be32-1c53dd09de4f', {
         urlParameters: {
             vehicle: 'foot'
@@ -161,7 +162,7 @@ var routeControl = L.Routing.control({
     lineOptions : { addWaypoints: false,
                     styles: [{color: 'black', opacity: 0.15, weight: 9}, {color: 'white', opacity: 0.8, weight: 6}, {color: 'blue', opacity: 1, weight: 2}] }
     }).addTo(map);
-
+*/
 
 routeControl.hide();
 
