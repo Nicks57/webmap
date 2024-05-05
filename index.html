@@ -14,6 +14,10 @@
         <script src="leafletroutingmachine/leaflet-routing-machine.js"></script>
         <script src="leafletroutingmachine/lrm-graphhopper.js"></script>-->
 
+        <!-- Leaflet GeoSearch -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.css"/>
+        <script src="https://unpkg.com/leaflet-geosearch@latest/dist/bundle.min.js"></script>
+
         <script src="gpx-helper.js"></script>
 
         <title>Trail Webmap</title>
@@ -22,9 +26,6 @@
         <style>
             body { margin:0; padding:0; }
             #map { position: absolute; top:0; bottom:0; right:0; left:0; }
-            #downloadMarkersButton { position: absolute; bottom: 100px; left: 20px; padding: 10px; z-index: 400; }
-            #downloadGPXButton { position: absolute; bottom: 60px; left: 20px; padding: 10px; z-index: 400; }
-            #aboutButton { position: absolute; bottom: 20px; left: 20px; padding: 10px; z-index: 400; }
 
             .custom-control-container {
                 padding: 5px;
@@ -43,13 +44,28 @@
             .custom-control-button:hover {
                 background-color: #0056b3;
             }
+
+            .custom-control-button2 {
+                background-color: #6800f0;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                cursor: pointer;
+                border-radius: 3px;
+                display: block;
+                margin-bottom: 7px;
+            }
+            .custom-control-button2:hover {
+                background-color: #4e00b3;
+            }
         </style>
 	</head>
 
     <body>
         <div id="map"></div>
 
-        <input type="file" id="file-input" accept=".gpx" style="display: none;" />
+        <input type="file" id="gpx-input" accept=".gpx" style="display: none;" />
+        <input type="file" id="project-input" accept=".twp" style="display: none;" />
         <script src="map-script.js"></script>
 	</body>
 </html>
