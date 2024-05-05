@@ -53,7 +53,7 @@ var IGN = L.tileLayer('https://wxs.ign.fr/essentiels/geoportail/wmts?service=WMT
     tileSize: 256});
 
 var map = L.map('map', {
-    center: [49, 7.2],
+    center: [49, 6.9],
     zoom: 10,
     contextmenu: true,
     contextmenuWidth: 180,
@@ -89,26 +89,33 @@ var CustomControl = L.Control.extend({
 
     onAdd: function(map) {
         var container = L.DomUtil.create('div', 'custom-control-container');
-        var button1 = L.DomUtil.create('button', 'custom-control-button', container);
+        var button1 = L.DomUtil.create('button', 'custom-control-button2', container);
         button1.innerHTML = 'Importer fichier GPX';
-
         button1.onclick = function() {
-            document.getElementById('file-input').click();
+            document.getElementById('gpx-input').click();
         };
 
-        var button3 = L.DomUtil.create('button', 'custom-control-button', container);
-        button3.innerHTML = 'Télécharger fichier GPX';
-
-        // Add your custom action here
-        button3.onclick = function() {
+        var button2 = L.DomUtil.create('button', 'custom-control-button2', container);
+        button2.innerHTML = 'Télécharger fichier GPX';
+        button2.onclick = function() {
             downloadTrack('track.gpx', 'text/csv;encoding:utf-8')
         };
 
-        var button4 = L.DomUtil.create('button', 'custom-control-button', container);
-        button4.innerHTML = 'À propos';
+        var button3 = L.DomUtil.create('button', 'custom-control-button', container);
+        button3.innerHTML = 'Importer projet';
+        button3.onclick = function() {
+            document.getElementById('project-input').click();
+        };
 
-        // Add your custom action here
+        var button4 = L.DomUtil.create('button', 'custom-control-button', container);
+        button4.innerHTML = 'Télécharger projet';
         button4.onclick = function() {
+            downloadProject('Trail_Webmap_Project.twp', 'text/csv;encoding:utf-8')
+        };
+
+        var button5 = L.DomUtil.create('button', 'custom-control-button', container);
+        button5.innerHTML = 'À propos';
+        button5.onclick = function() {
             showInfo()
         };
 
@@ -122,6 +129,15 @@ var CustomControl = L.Control.extend({
 
   // Add the custom control to the map
 (new CustomControl()).addTo(map);
+
+/*const search = new GeoSearch.GeoSearchControl({
+    provider: new GeoSearch.OpenStreetMapProvider(),
+    style: 'button', // optional: bar|button  - default button
+    showMarker: false, // optional: true|false  - default true
+    searchLabel: 'Entrer adresse', // optional: string      - default 'Enter address'
+  });
+  
+  map.addControl(search);*/
 
 //************************************ */
 //Google StreetView
@@ -162,9 +178,23 @@ var routeControl = L.Routing.control({
 
 routeControl.hide();*/
 
-function AddWaypoint (e) {
+function AddWaypoint (e, routeCoordsData) {
+    var iconPath = "";
+    if(waypoints.length === 0)  //premier waypoint
+        iconPath = "res/pin-icon-start.png";
+    else
+        iconPath = "res/pin-icon-end.png";
+
+    var customIcon = L.icon({
+        iconUrl: iconPath, // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+        iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+        iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+        popupAnchor: [-3, -30] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+        });
+
     var newMarker = new L.marker(e.latlng, {
         draggable: 'true',
+        icon: customIcon,
         contextmenu: true,
         contextmenuItems: [{
             text: 'Supprimer point d\'itinéraire',
@@ -181,21 +211,50 @@ function AddWaypoint (e) {
     let lat = e.latlng.lat.toPrecision(8);
     let lng = e.latlng.lng.toPrecision(8);
 
-    waypoints.push({"ID": newMarker._leaflet_id, "lat": lat, "lng": lng});
+    waypoints.push({"ID": newMarker._leaflet_id, "lat": lat, "lng": lng, "LFMarker": newMarker});
     console.log("Waypoint with ID "  + newMarker._leaflet_id + " added to array");
+
+    if(waypoints.length > 2)   //on modifie l'icone du marquer pour qu'il devienne un point à la place du marqueur de fin d'itinéraire
+    {
+        customIcon = L.icon({
+            iconUrl: "res/dot-icon.png", // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+            iconSize: [20, 20], // Taille de l'icône [largeur, hauteur]
+            iconAnchor: [9, 12], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+            });
+
+        var SndLastMarker = waypoints[waypoints.length - 2].LFMarker;
+        SndLastMarker.setIcon(customIcon);
+    }
 
     if (waypoints.length > 1)
     {
-        GetRouteCoords(waypoints[waypoints.length - 2].lat, waypoints[waypoints.length - 2].lng, waypoints[waypoints.length - 1].lat, waypoints[waypoints.length - 1].lng)
-        .then(data => {
-            routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : data});
+        if(routeCoordsData !== undefined)
+        {
+            routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : routeCoordsData});
             UpdateRoutePolyline(routeCoords);
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            //markerGroup.removeLayer(e.relatedTarget._leaflet_id);
-            //waypoints.splice(0, -1);
-        });
+        }
+        else
+        {
+            var wps = [];
+            wps.push({"lat" : waypoints[waypoints.length - 2].lat, "lng" : waypoints[waypoints.length - 2].lng});
+            wps.push({"lat" : waypoints[waypoints.length - 1].lat, "lng" : waypoints[waypoints.length - 1].lng});
+            GetRouteCoords(wps)
+            .then(data => {
+                routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : data[0]});
+                UpdateRoutePolyline(routeCoords);
+
+                //correction de la position du marqueur pour être bien au milieu de la route:
+                var lastcoordsidx = routeCoords[routeCoords.length - 1].coords.length - 1;
+                var correctedCoords = routeCoords[routeCoords.length - 1].coords[lastcoordsidx];
+                newMarker.setLatLng(correctedCoords);
+                waypoints[waypoints.length - 1] = {"ID": newMarker._leaflet_id, "lat": correctedCoords.lat, "lng": correctedCoords.lng, "LFMarker": newMarker};
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                //markerGroup.removeLayer(e.relatedTarget._leaflet_id);
+                //waypoints.splice(0, -1);
+            });
+        }
     }
 }
 
@@ -217,25 +276,34 @@ function DeleteWaypoint (e) {
     {
         routeCoords.shift();
         UpdateRoutePolyline(routeCoords);
-        console.log("Route has been updated");
+
+        customIcon = L.icon({
+            iconUrl: "res/pin-icon-start.png", // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+            iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+            iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+            });
+
+        waypoints[0].LFMarker.setIcon(customIcon);
     }
     else if(bLastWaypoint)
     {
         routeCoords.pop();
         UpdateRoutePolyline(routeCoords);
-        console.log("Route has been updated");
     }
     else
     {
         routeCoords.splice(WPindex, 1);   //On supprime la route qui a pour point de départ le waypoint supprimé
         if (waypoints.length > 1)
         {
-            GetRouteCoords(waypoints[WPindex - 1].lat, waypoints[WPindex - 1].lng, waypoints[WPindex].lat, waypoints[WPindex].lng)
+            var wps = [];
+            wps.push({"lat" : waypoints[WPindex - 1].lat, "lng" : waypoints[WPindex - 1].lng});
+            wps.push({"lat" : waypoints[WPindex].lat, "lng" : waypoints[WPindex].lng});
+
+            GetRouteCoords(wps)
                 .then(data => {
-                    routeCoords[WPindex-1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data};
+                    routeCoords[WPindex-1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data[0]};
 
                     UpdateRoutePolyline(routeCoords);
-                    console.log("Route has been updated");
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
@@ -243,14 +311,14 @@ function DeleteWaypoint (e) {
                     //waypoints.splice(0, -1);
                 });
         }
-        else  //Il ne reste plus qu'un marqueur sur la map -> on supprime la route
+        /*else  //Il ne reste plus qu'un marqueur sur la map -> on supprime la route
         {
             if (routePolyline !== null) 
             {
                 routePolyline.removeFrom(map);
                 routePolyline = null;
             }
-        }
+        }*/
     }
 }
 
@@ -261,9 +329,9 @@ function dragEndWaypointHandler(e) {
     let lat = e.target._latlng.lat.toPrecision(8);
     let lng = e.target._latlng.lng.toPrecision(8);
 
-    console.log("Draging of waypoint ended. ID is " + ID + ". New position is " + lat + "," + lng);
+    console.log("Waypoint with ID " + ID + " dragged");
     const WPindex = waypoints.findIndex(p => p.ID == e.target._leaflet_id);
-    waypoints[WPindex] = {"ID": ID, "lat": lat, "lng": lng};
+    waypoints[WPindex] = {"ID": ID, "lat": lat, "lng": lng, "LFMarker": e.target};
     if(WPindex === 0)
         bFirstWaypoint = true;
     else if(WPindex === waypoints.length - 1)
@@ -274,12 +342,15 @@ function dragEndWaypointHandler(e) {
     {
         if(bFirstWaypoint)
         {
-            GetRouteCoords(waypoints[WPindex].lat, waypoints[WPindex].lng, waypoints[WPindex + 1].lat, waypoints[WPindex + 1].lng)
+            var wps = [];
+            wps.push({"lat" : waypoints[WPindex].lat, "lng" : waypoints[WPindex].lng});
+            wps.push({"lat" : waypoints[WPindex + 1].lat, "lng" : waypoints[WPindex + 1].lng});
+
+            GetRouteCoords(wps)
                 .then(data => {
-                    routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data}
+                    routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data[0]}
                     UpdateRoutePolyline(routeCoords);
-                    console.log("Route has been updated");
-                })
+                    })
                 .catch(error => {
                     console.error('Erreur:', error);
                     //markerGroup.removeLayer(e.relatedTarget._leaflet_id);
@@ -288,11 +359,14 @@ function dragEndWaypointHandler(e) {
         }
         else if(bLastWaypoint)
         {
-            GetRouteCoords(waypoints[WPindex - 1].lat, waypoints[WPindex - 1].lng, waypoints[WPindex].lat, waypoints[WPindex].lng)
+            var wps = [];
+            wps.push({"lat" : waypoints[WPindex - 1].lat, "lng" : waypoints[WPindex - 1].lng});
+            wps.push({"lat" : waypoints[WPindex].lat, "lng" : waypoints[WPindex].lng});
+
+            GetRouteCoords(wps)
                 .then(data => {
-                    routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data}
+                    routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data[0]}
                     UpdateRoutePolyline(routeCoords);
-                    console.log("Route has been updated");
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
@@ -302,28 +376,28 @@ function dragEndWaypointHandler(e) {
         }
         else
         {
-            GetRouteCoords(waypoints[WPindex - 1].lat, waypoints[WPindex - 1].lng, waypoints[WPindex].lat, waypoints[WPindex].lng)
-                .then(data => {
-                    routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data}
+            var wps = [];
+            wps.push({"lat" : waypoints[WPindex - 1].lat, "lng" : waypoints[WPindex - 1].lng});
+            wps.push({"lat" : waypoints[WPindex].lat, "lng" : waypoints[WPindex].lng});
+            wps.push({"lat" : waypoints[WPindex + 1].lat, "lng" : waypoints[WPindex + 1].lng});
 
-                    GetRouteCoords(waypoints[WPindex].lat, waypoints[WPindex].lng, waypoints[WPindex + 1].lat, waypoints[WPindex + 1].lng)
-                    .then(data => {
-                        routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data}
+            GetRouteCoords(wps)
+            .then(data => {
+                routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data[0]}
+                routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data[1]}
 
-                        UpdateRoutePolyline(routeCoords);
-                        console.log("Route has been updated");
-                    })
-                    .catch(error => {
-                        console.error('Erreur:', error);
-                        //markerGroup.removeLayer(e.relatedTarget._leaflet_id);
-                        //waypoints.splice(0, -1);
-                    });
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    //markerGroup.removeLayer(e.relatedTarget._leaflet_id);
-                    //waypoints.splice(0, -1);
-                });    
+                UpdateRoutePolyline(routeCoords);
+
+                //correction de la position du marqueur pour être bien au milieu de la route:
+                var correctedCoords = routeCoords[WPindex].coords[0];
+                e.target.setLatLng(correctedCoords);
+                waypoints[WPindex] = {"ID": ID, "lat": correctedCoords.lat, "lng": correctedCoords.lng, "LFMarker": e.target};
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                //markerGroup.removeLayer(e.relatedTarget._leaflet_id);
+                //waypoints.splice(0, -1);
+            });
         }
     }
 }
@@ -331,9 +405,9 @@ function dragEndWaypointHandler(e) {
 
 function AddMarker (e) {
     var customIcon = L.icon({
-        iconUrl: 'res/marker-i-50x50_Orange.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
-        iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
-        iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+        iconUrl: 'res/marker-i-50x50_Bleu.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+        iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+        iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
         popupAnchor: [-3, -30] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
         });
     var newMarker = new L.marker(e.latlng, {
@@ -392,7 +466,7 @@ var fileArray = [
 
 for (const file of fileArray) {
     new L.GPXHelper(file[0], {
-        polyline_options : {color: file[1]}
+        polyline_options : {color: file[1], interactive: false}
     }).on('loaded', function(e) {
         var gpx = e.target;
         layerControl.addOverlay(gpx, gpx.get_name());
@@ -402,7 +476,9 @@ for (const file of fileArray) {
 //Add Markers
 new L.GPXHelper("tracks/db/Markers.gpx", {
         marker_options : {
-            wptIconUrl : 'res/marker-i-50x50_Bleu.png',
+            wptIconUrl : 'res/marker-i-50x50_Orange.png',
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
         }
     }).on('loaded', function(e) {
     }).addTo(map);
@@ -434,7 +510,7 @@ setTimeout(function() {
 
 //************************************ */
 //Import GPX Button
-document.getElementById('file-input')
+document.getElementById('gpx-input')
     .addEventListener('change', function (e) {
         var file = e.target.files[0];
         var reader = new FileReader();
@@ -444,6 +520,8 @@ document.getElementById('file-input')
                 marker_options : {
                     addStartEndIcons: true,
                     wptIconUrl : 'res/marker-i-50x50_Violet.png',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
                 },
                 polyline_options : {
                     color: '#a00af7'  //Violet
@@ -463,11 +541,11 @@ document.getElementById('file-input')
 var downloadTrack = function (fileName, mimeType) {
     var coord = [];
 
-    if(routeControl._routes !== undefined) {
-        for(let i = 0; i < routeControl._routes.length; i++) {
-            for (let j = 0; j < routeControl._routes[i].coordinates.length; j++) {
-                coord.push(routeControl._routes[i].coordinates[j]);
-            }
+    if(routeCoords.length !== 0)
+    {
+        for(let i = 0; i < routeCoords.length; i++) {
+            for (let j = 0; j < routeCoords[i].coords.length; j++)
+                coord.push(routeCoords[i].coords[j]);
         }
     }
     else
@@ -511,23 +589,122 @@ var downloadTrack = function (fileName, mimeType) {
 }
 
 //************************************ */
-//Download Markers Button
-var downloadMarkers = function (fileName, mimeType) {
-    gpxmarkers = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n';
+//Import Project Button
+document.getElementById('project-input')
+    .addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var filecontent = e.target.result;
+            var parser = new DOMParser();
+            setTimeout(function() 
+                {
+                    parseFile(parser.parseFromString(filecontent, "text/xml"));
+                });
+        }
+        reader.readAsText(file);
+    })
+
+var parseFile = function(file)
+{
+    var layers = [];
+
+    // parse markers
+    el = file.getElementsByTagName('marker');
+    for (i = 0; i < el.length; i++) {
+      var ll = new L.LatLng(
+          el[i].getAttribute('lat'),
+          el[i].getAttribute('lon'));
+
+      var nameEl = el[i].getElementsByTagName('name');
+      var name = nameEl.length > 0 ? nameEl[0].textContent : '';
+
+      var descEl = el[i].getElementsByTagName('desc');
+      var desc = descEl.length > 0 ? descEl[0].textContent : '';  
+
+      var marker = {"latlng": ll};
+      AddMarker(marker);
+    }
+
+    var routeCoords = file.getElementsByTagName('rte');
+    var dataCoords = [];
+    for (i = 0; i < routeCoords.length; i++) 
+    {
+        var routeCoord = routeCoords[i];
+        var segments = routeCoord.getElementsByTagName('rteseg');
+        for (j = 0; j < segments.length; j++) 
+        {
+            var el = segments[j].getElementsByTagName('rtept');
+            if (!el.length) return [];
+
+            var data = [];
+            for (var i = 0; i < el.length; i++) 
+            {
+                var ll = new L.LatLng(
+                    el[i].getAttribute('lat'),
+                    el[i].getAttribute('lon'));
+                data.push(ll);
+            }
+
+            dataCoords.push(data);
+
+            if(j === 0)
+            {
+                var wpt = {"latlng": data[0]};
+                AddWaypoint(wpt);
+            }
+            else if(j === segments.length - 1)
+            {
+                var wpt = {"latlng": data[0]};
+                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);
+                wpt = {"latlng": data[data.length - 1]};
+                AddWaypoint(wpt, dataCoords[dataCoords.length - 1]);
+                map.fitBounds([dataCoords[0][0], dataCoords[dataCoords.length - 1][dataCoords[dataCoords.length - 1].length - 1]]);
+            }
+            else
+            {
+                var wpt = {"latlng": data[0]};
+                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);     
+            }
+        }
+    }
+}
+
+//************************************ */
+//Download Project Button
+var downloadProject = function (fileName, mimeType) 
+{
+    var timestamp = new Date().toLocaleString('en-GB');
+    fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<twp>\n';
 
     for (var i = 0; i < markers.length; i++) {
-        gpxmarkers += '<wpt lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</wpt>\n';
+        fileContent += '<marker lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</marker>\n';
     }
-    gpxmarkers += '</gpx>';
+
+    if(routeCoords.length !== 0) {
+        fileContent += '<rte>\n';
+        for(let i = 0; i < routeCoords.length; i++) 
+        {
+            fileContent += '\t<rteseg>\n';
+            for (let j = 0; j < routeCoords[i].coords.length; j++) 
+                fileContent += '\t\t<rtept lat="' + routeCoords[i].coords[j].lat + '" lon="' + routeCoords[i].coords[j].lng + '"></rtept>\n';
+            
+            fileContent += '\t</rteseg>\n';
+        }
+
+        fileContent += '</rte>\n';
+    }
+
+    fileContent += '</twp>';
 
     var a = document.createElement('a');
     mimeType = mimeType || 'application/octet-stream';
     if (navigator.msSaveBlob) { // IE10
-        navigator.msSaveBlob(new Blob([gpxmarkers], {
+        navigator.msSaveBlob(new Blob([gpxcontent], {
             type: mimeType
         }), fileName);
     } else if (URL && 'download' in a) { //html5 A[download]
-        a.href = URL.createObjectURL(new Blob([gpxmarkers], {
+        a.href = URL.createObjectURL(new Blob([fileContent], {
             type: mimeType
         }));
         a.setAttribute('download', fileName);
@@ -535,12 +712,12 @@ var downloadMarkers = function (fileName, mimeType) {
         a.click();
         document.body.removeChild(a);
     } else {
-        location.href = 'data:application/octet-stream,' + encodeURIComponent(gpxmarkers); // only this mime type is supported
+        location.href = 'data:application/octet-stream,' + encodeURIComponent(fileContent); // only this mime type is supported
     }
 }
 
-
-//Implementation Routing GraphHoper
+//*************************************/
+//Implementation Routing Perso GraphHoper
 function UpdateRoutePolyline(coordinates)
 {
     var coords = [];
@@ -557,10 +734,24 @@ function UpdateRoutePolyline(coordinates)
 }
 
 
-function GetRouteCoords(startPointLat, startPointLng, endPointLat, endPointLng)
+function GetRouteCoords(wps)
 {
+    if(wps.lengh > 5)
+    {
+        alert("There are more than 5 waypoints. This is not acceptable for GraphHoper")
+        exit;
+    }
     const apiKey = "939a6776-5fa7-4366-be32-1c53dd09de4f";
-    const apiUrl = `https://graphhopper.com/api/1/route?point=${startPointLat},${startPointLng}&point=${endPointLat},${endPointLng}&profile=bike&key=${apiKey}`;
+
+    locs = [];
+    for(i = 0; i < wps.length; i++)
+    {
+        locs.push('point=' + wps[i].lat + ',' + wps[i].lng);;
+    }
+
+
+    var points = locs.join('&');
+    const apiUrl = `https://graphhopper.com/api/1/route?${points}&profile=bike&key=${apiKey}`;
 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -573,11 +764,36 @@ function GetRouteCoords(startPointLat, startPointLng, endPointLat, endPointLng)
             const response = JSON.parse(xhr.responseText);
             var RemainingCredits = xhr.getResponseHeader('X-RateLimit-Remaining');
             var Cost = xhr.getResponseHeader('X-RateLimit-Credits');
-            console.log('La requête a coûté ' + Cost + ' crédit(s). Crédits restants : ' + RemainingCredits);
+            console.log('Crédits restants : ' + RemainingCredits);
 
             const coordinates = DecodePolyline(response.paths[0].points);  //Il ne devrait y avoir qu'un seul path dans la réponse!
+            const snappedwps = DecodePolyline(response.paths[0].snapped_waypoints);
 
-            resolve(coordinates);
+            var res = [];
+            var idx = 0;
+            var previdx = 0;
+            var found = false;
+
+            for(i = 0; i < snappedwps.length - 1; i++)
+            {
+                for(j = 0; j < coordinates.length; j++)
+                {
+                    if(snappedwps[i+1].lat === coordinates[j].lat && snappedwps[i+1].lng === coordinates[j].lng)
+                    {
+                        idx = j;
+                        found = true;
+                        break;
+                    }
+                }
+                if(found === false)
+                    reject("Snapped waypoint non trouvé dans le tableau coordinates");
+
+                res.push(coordinates.slice(previdx, idx + 1));
+                previdx = idx;
+            }
+
+
+            resolve(res);
 
         } else
             reject('Erreur lors de la requête:', xhr.statusText);
@@ -665,7 +881,31 @@ function Decode (str, precision)
     return coordinates;
 };
 
+//*************************************/
+
 //About button
 function showInfo() {
-    alert("Version: 0.4.0")
+    alert("Version: 0.5.0")
 }
+
+
+
+//Calibrage des icones
+/*iconPath = "res/marker-i-50x50_Bleu.png";
+
+var customIcon = L.icon({
+iconUrl: iconPath, // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+});
+
+var newMarker = new L.marker([49, 7.2], {icon: customIcon}).addTo(map);
+
+var marker = L.marker([49, 7.2]).addTo(map);*/
+
+//res/marker-i-50x50_Bleu.png: Size = [30,30] / Anchor = [15,30]
+//res/marker-i-50x50_Orange.png: Size = [30,30] / Anchor = [15,30]
+//res/marker-i-50x50_Violet.png: Size = [30,30] / Anchor = [15,30]
+//res/pin-icon-end.png: Size = [30,30] / Anchor = [15,30]
+//res/pin-icon-start.png: Size = [30,30] / Anchor = [15,30]
+//res/dot-icon.png: Size = [20,20] / Anchor = [9,12]
