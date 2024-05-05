@@ -5,8 +5,8 @@ var _DEFAULT_MARKER_OPTS = {
     startIconUrl: 'res/pin-icon-start.png',
     endIconUrl: 'res/pin-icon-end.png',
     wptIconUrl: 'res/marker-i-50x50_Orange.png',
-    iconSize: [38, 38], // Taille de l'icône [largeur, hauteur]
-    iconAnchor: [22, 34], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+    iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+    iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
     popupAnchor: [-3, -30], // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
     clickable: false
   };
@@ -98,9 +98,6 @@ L.GPXHelper = L.FeatureGroup.extend({
 
         // parse waypoints and add markers for each of them
         el = gpx.getElementsByTagName('wpt');
-        if(el.length > 0) {
-            console.log("Waypoint(s) found!");
-        }
         for (i = 0; i < el.length; i++) {
           var ll = new L.LatLng(
               el[i].getAttribute('lat'),
