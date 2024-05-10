@@ -30,6 +30,18 @@ const GPXDebug = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
 '</gpx>';
 //************* */
 
+//Global variables
+var waypoints = [];
+var markers = [];
+var markerGroup = L.layerGroup();
+var OSMDataLayer = L.layerGroup();
+var routeCoords = [];
+let routePolyline = null;
+var OSMDataHidden = true;
+var buttonDisplayOSMData;
+
+//************* */
+
 //Create Map layers
 var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -81,7 +93,10 @@ var baseMaps = {
 
 var layerControl = L.control.layers(baseMaps).addTo(map);
 
-// Create a custom control
+markerGroup.addTo(map);
+
+//************************************ */
+// Custom control with buttons
 var CustomControl = L.Control.extend({
     options: {
         position: 'topleft',
@@ -89,33 +104,46 @@ var CustomControl = L.Control.extend({
 
     onAdd: function(map) {
         var container = L.DomUtil.create('div', 'custom-control-container');
-        var button1 = L.DomUtil.create('button', 'custom-control-button2', container);
-        button1.innerHTML = 'Importer fichier GPX';
-        button1.onclick = function() {
+
+        var buttonImportGPX = L.DomUtil.create('button', 'custom-control-button2', container);
+        buttonImportGPX.innerHTML = 'Importer fichier GPX';
+        buttonImportGPX.onclick = function() {
             document.getElementById('gpx-input').click();
         };
 
-        var button2 = L.DomUtil.create('button', 'custom-control-button2', container);
-        button2.innerHTML = 'Télécharger fichier GPX';
-        button2.onclick = function() {
+        var buttonDownloadGPX = L.DomUtil.create('button', 'custom-control-button2', container);
+        buttonDownloadGPX.innerHTML = 'Télécharger fichier GPX';
+        buttonDownloadGPX.onclick = function() {
             downloadTrack('track.gpx', 'text/csv;encoding:utf-8')
         };
 
-        var button3 = L.DomUtil.create('button', 'custom-control-button', container);
-        button3.innerHTML = 'Importer projet';
-        button3.onclick = function() {
+        var buttonImportProject = L.DomUtil.create('button', 'custom-control-button', container);
+        buttonImportProject.innerHTML = 'Importer projet';
+        buttonImportProject.onclick = function() {
             document.getElementById('project-input').click();
         };
 
-        var button4 = L.DomUtil.create('button', 'custom-control-button', container);
-        button4.innerHTML = 'Télécharger projet';
-        button4.onclick = function() {
+        var buttonDownloadProject = L.DomUtil.create('button', 'custom-control-button', container);
+        buttonDownloadProject.innerHTML = 'Télécharger projet';
+        buttonDownloadProject.onclick = function() {
             downloadProject('Trail_Webmap_Project.twp', 'text/csv;encoding:utf-8')
         };
 
-        var button5 = L.DomUtil.create('button', 'custom-control-button', container);
-        button5.innerHTML = 'À propos';
-        button5.onclick = function() {
+        buttonDisplayOSMData = L.DomUtil.create('button', 'custom-control-button', container);
+        buttonDisplayOSMData.innerHTML = 'Afficher données OSM';
+        buttonDisplayOSMData.onclick = function() {
+            displayOSMData()
+        };
+
+        var buttonDownloadOSMData = L.DomUtil.create('button', 'custom-control-button', container);
+        buttonDownloadOSMData.innerHTML = 'Télécharger données OSM';
+        buttonDownloadOSMData.onclick = function() {
+            downloadOSMData('OSM_Data.xml', 'text/csv;encoding:utf-8')
+        };
+
+        var buttonAbout = L.DomUtil.create('button', 'custom-control-button', container);
+        buttonAbout.innerHTML = 'À propos';
+        buttonAbout.onclick = function() {
             showInfo()
         };
 
@@ -127,17 +155,27 @@ var CustomControl = L.Control.extend({
     }
 });
 
-  // Add the custom control to the map
+// Add the custom control to the map
 (new CustomControl()).addTo(map);
 
-/*const search = new GeoSearch.GeoSearchControl({
-    provider: new GeoSearch.OpenStreetMapProvider(),
-    style: 'button', // optional: bar|button  - default button
-    showMarker: false, // optional: true|false  - default true
-    searchLabel: 'Entrer adresse', // optional: string      - default 'Enter address'
-  });
-  
-  map.addControl(search);*/
+
+//************************************ */
+// Geo Search Bar
+var geocoder = L.Control.geocoder({
+    defaultMarkGeocode: false,
+  })
+    .on('markgeocode', function(e) {
+      var bbox = e.geocode.bbox;
+      var poly = L.polygon([
+        bbox.getSouthEast(),
+        bbox.getNorthEast(),
+        bbox.getNorthWest(),
+        bbox.getSouthWest()
+      ]);
+      map.fitBounds(poly.getBounds());
+    })
+    .addTo(map);
+
 
 //************************************ */
 //Google StreetView
@@ -148,12 +186,8 @@ function StartStreetview (e) {
 }
 
 //************************************ */
-//Routing Machine
-var waypoints = [];
-var markers = [];
-var markerGroup = L.layerGroup().addTo(map);
-var routeCoords = [];
-let routePolyline = null;
+//Routing
+
 
 //Demo version with OSM Demo servers. Use it for some debugging tasks
 /*var routeControl = L.Routing.control({
@@ -449,7 +483,7 @@ function dragEndMarkerHandler(e) {
 }
 
 //************************************ */
-//Load GPX database files
+//Load database files
 var gpx = GPXDebug; // GPX as string used for debugging
 
 
@@ -507,6 +541,51 @@ setTimeout(function() {
     }
     // Changez les couleurs d'autres couches d'overlay comme souhaité
 }, 1000); // Attendre 1000 millisecondes (1 seconde) avant d'exécuter le code
+
+
+//OSM Data
+var file = "tracks/db/OSM_Data.xml";
+var req = new window.XMLHttpRequest();
+req.open('GET', file, true);
+try {
+    req.overrideMimeType('text/xml'); // unsupported by IE
+} catch(e) {}
+req.onreadystatechange = function() {
+    if (req.readyState != 4) return;
+    if(req.status == 200) 
+    {
+        console.log(req.responseXML);
+        parseOSMDataFile(req.responseXML);
+    }
+};
+req.send(null);
+
+function parseOSMDataFile(input)
+{
+    var layers = [];
+    var customIcon = L.icon({
+        iconUrl: 'res/round_red_blk_light.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+        iconSize: [10, 10], // Taille de l'icône [largeur, hauteur]
+        //iconAnchor: [0, 0], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+        popupAnchor: [0, 0] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+        });
+
+    var barriers = input.getElementsByTagName('barriers');
+    for (i = 0; i < barriers.length; i++)
+    {
+        var barrier = barriers[i].getElementsByTagName('barrier')
+        for (i = 0; i < barrier.length; i++)
+        {
+            var newMarker = new L.marker([barrier[i].getAttribute('lat'), barrier[i].getAttribute('lon')], {
+            draggable: false,
+            icon: customIcon,
+            })
+            
+            newMarker.bindPopup("Barrier: " + barrier[i].getAttribute('desc')).openPopup();
+            newMarker.addTo(OSMDataLayer);
+        }        
+    }
+}
 
 //************************************ */
 //Import GPX Button
@@ -751,7 +830,7 @@ function GetRouteCoords(wps)
 
 
     var points = locs.join('&');
-    const apiUrl = `https://graphhopper.com/api/1/route?${points}&profile=bike&key=${apiKey}`;
+    const apiUrl = `https://graphhopper.com/api/1/route?${points}&profile=bike&key=${apiKey}&instructions=false`;
 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -883,9 +962,113 @@ function Decode (str, precision)
 
 //*************************************/
 
+//*************************************/
+var downloadOSMData = function (fileName, mimeType) 
+{
+    // Définir la requête Overpass pour récupérer les barrières sur les chemins
+
+    var overpassQuery = `[out:json][timeout:25];
+    area[name="Moselle"]->.a;
+    (
+        node(area.a)[barrier="chain"];
+        node(area.a)[barrier="jersey_barrier"];
+        node(area.a)[barrier="horse_stile"];
+        node(area.a)[barrier="kissing_gate"];
+        node(area.a)[barrier="stile"];
+        node(area.a)[barrier="block"];
+        node(area.a)[barrier="turnstile"];
+        node(area.a)[barrier="bus_trap"];
+        node(area.a)[barrier="cycle_barrier"];
+        node(area.a)[barrier="sump_buster"];
+        node(area.a)[barrier="fence"];
+        node(area.a)[barrier="debris"];
+        node(area.a)[barrier="lift_gate"];
+        node(area.a)[barrier="bollard"];
+        node(area.a)[barrier="swing_gate"];
+        node(area.a)[barrier="yes"];
+        node(area.a)[barrier="gate"];
+        node(area.a)[barrier="entrance"];
+        node(area.a)[barrier="ditch"];
+    );
+    out center;
+    >;
+    out skel qt;`;
+
+    // URL de l'API Overpass
+    var overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+    console.log("Overpass URL:",overpassUrl);
+
+    fetch(overpassUrl)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erreur lors de la requête à l\'API Overpass');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Traitement des données en cas de succès
+        var barriers = [];
+
+        data.elements.forEach(function(element) {
+            if (element.type === 'node') 
+                barriers.push({"lat" : element.lat, "lon" : element.lon, "desc" : element.tags.barrier});
+        })
+
+        var timestamp = new Date().toLocaleString('en-GB');
+        fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<barriers>\n';
+
+        for (var i = 0; i < barriers.length; i++) 
+        {
+            fileContent += '\t<barrier lat="' + barriers[i].lat + '" lon="' + barriers[i].lon + '" desc="' + barriers[i].desc + '"></barrier>\n';
+        }
+
+        fileContent += '</barriers>';
+
+        var a = document.createElement('a');
+        mimeType = mimeType || 'application/octet-stream';
+        if (navigator.msSaveBlob) { // IE10
+            navigator.msSaveBlob(new Blob([gpxcontent], {
+                type: mimeType
+            }), fileName);
+        } else if (URL && 'download' in a) { //html5 A[download]
+            a.href = URL.createObjectURL(new Blob([fileContent], {
+                type: mimeType
+            }));
+            a.setAttribute('download', fileName);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            location.href = 'data:application/octet-stream,' + encodeURIComponent(fileContent); // only this mime type is supported
+        }
+        })
+
+        .catch(error => {
+            // Gestion des erreurs
+            alert("Une erreur s'est produite lors de la requête Overpass: ", error.message);
+        });  
+}
+//
+
+function displayOSMData()
+{
+    if(OSMDataHidden)
+    {
+        OSMDataLayer.addTo(map);
+        buttonDisplayOSMData.innerHTML = 'Masquer données OSM';
+        OSMDataHidden = false;
+    }
+    else
+    {
+        OSMDataLayer.removeFrom(map);
+        buttonDisplayOSMData.innerHTML = 'Afficher données OSM';
+        OSMDataHidden = true;
+    }
+}
+
 //About button
 function showInfo() {
-    alert("Version: 0.5.0")
+    alert("Version: 0.6.0")
 }
 
 
