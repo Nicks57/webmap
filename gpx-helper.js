@@ -11,7 +11,8 @@ var _DEFAULT_MARKER_OPTS = {
     clickable: false
   };
 var _DEFAULT_POLYLINE_OPTS = {
-    color: '#a00af7'  //Violet
+    color: '#a00af7',  //Violet
+    weight: 7
   };
 
 L.GPXHelper = L.FeatureGroup.extend({
@@ -160,7 +161,7 @@ L.GPXHelper = L.FeatureGroup.extend({
             }
 
         // add track
-        var l = new L.polyline(coords, {color: options.polyline_options.color, weight: 7});
+        var l = new L.polyline(coords, {color: options.polyline_options.color, weight: options.polyline_options.weight});
         layers.push(l);
 
         if (options.marker_options.addStartEndIcons) {
