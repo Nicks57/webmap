@@ -500,7 +500,7 @@ var fileArray = [
 
 for (const file of fileArray) {
     new L.GPXHelper(file[0], {
-        polyline_options : {color: file[1], interactive: false}
+        polyline_options : {color: file[1], weight: 7, interactive: false}
     }).on('loaded', function(e) {
         var gpx = e.target;
         layerControl.addOverlay(gpx, gpx.get_name());
@@ -603,7 +603,8 @@ document.getElementById('gpx-input')
                     iconAnchor: [15, 30]
                 },
                 polyline_options : {
-                    color: '#a00af7'  //Violet
+                    color: '#a00af7',  //Violet
+                    weight: 3
                 }
                 }).on('loaded', function(e) {
                 var gpx = e.target;
@@ -1068,7 +1069,7 @@ function displayOSMData()
 
 //About button
 function showInfo() {
-    alert("Version: 0.6.0")
+    alert("Version: 0.7.0")
 }
 
 
