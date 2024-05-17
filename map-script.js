@@ -35,6 +35,11 @@ var waypoints = [];
 var markers = [];
 var markerGroup = L.layerGroup();
 var OSMDataLayer = L.layerGroup();
+var OSMDataMarkers = L.markerClusterGroup({
+	spiderfyOnMaxZoom: false,
+	showCoverageOnHover: false,
+	zoomToBoundsOnClick: false
+});
 var routeCoords = [];
 let routePolyline = null;
 var OSMDataHidden = true;
@@ -565,7 +570,7 @@ function parseOSMDataFile(input)
     var layers = [];
     var customIcon = L.icon({
         iconUrl: 'res/round_red_blk_light.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
-        iconSize: [10, 10], // Taille de l'icône [largeur, hauteur]
+        iconSize: [20, 20], // Taille de l'icône [largeur, hauteur]
         //iconAnchor: [0, 0], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
         popupAnchor: [0, 0] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
         });
@@ -581,9 +586,11 @@ function parseOSMDataFile(input)
             icon: customIcon,
             })
             
-            newMarker.bindPopup("Barrier: " + barrier[i].getAttribute('desc')).openPopup();
-            newMarker.addTo(OSMDataLayer);
-        }        
+            newMarker.bindPopup("<b>Barrier</b>: " + barrier[i].getAttribute('desc')).openPopup();
+            //newMarker.addTo(OSMDataLayer);
+
+            OSMDataMarkers.addLayer(newMarker);
+        }
     }
 }
 
@@ -1055,13 +1062,13 @@ function displayOSMData()
 {
     if(OSMDataHidden)
     {
-        OSMDataLayer.addTo(map);
+        OSMDataMarkers.addTo(map);
         buttonDisplayOSMData.innerHTML = 'Masquer données OSM';
         OSMDataHidden = false;
     }
     else
     {
-        OSMDataLayer.removeFrom(map);
+        OSMDataMarkers.removeFrom(map);
         buttonDisplayOSMData.innerHTML = 'Afficher données OSM';
         OSMDataHidden = true;
     }
@@ -1069,7 +1076,7 @@ function displayOSMData()
 
 //About button
 function showInfo() {
-    alert("Version: 0.7.0")
+    alert("Version: 0.8.0")
 }
 
 
