@@ -44,10 +44,11 @@ var routeCoords = [];
 let routePolyline = null;
 var OSMDataHidden = true;
 var buttonDisplayOSMData;
+var OSMDataDateTime;
 
 //************* */
 
-//Create Map layers
+//Map layers
 var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'});
@@ -72,6 +73,7 @@ var IGN = L.tileLayer('https://wxs.ign.fr/essentiels/geoportail/wmts?service=WMT
 var map = L.map('map', {
     center: [49, 6.9],
     zoom: 10,
+    zoomControl: false,
     contextmenu: true,
     contextmenuWidth: 180,
     contextmenuItems: [{
@@ -98,9 +100,16 @@ var baseMaps = {
 
 var layerControl = L.control.layers(baseMaps).addTo(map);
 
-markerGroup.addTo(map);
+L.control.zoom({
+    position: 'topright'
+}).addTo(map);
+
+//markerGroup.addTo(map);
 
 //************************************ */
+
+
+//Controls *************************** */
 // Custom control with buttons
 var CustomControl = L.Control.extend({
     options: {
@@ -147,7 +156,7 @@ var CustomControl = L.Control.extend({
         };
 
         var buttonAbout = L.DomUtil.create('button', 'custom-control-button', container);
-        buttonAbout.innerHTML = 'À propos';
+        buttonAbout.innerHTML = 'Infos';
         buttonAbout.onclick = function() {
             showInfo()
         };
@@ -164,7 +173,6 @@ var CustomControl = L.Control.extend({
 (new CustomControl()).addTo(map);
 
 
-//************************************ */
 // Geo Search Bar
 var geocoder = L.Control.geocoder({
     defaultMarkGeocode: false,
@@ -182,8 +190,352 @@ var geocoder = L.Control.geocoder({
     .addTo(map);
 
 
+// Geolocalization
+L.control.locate({position: "topright", strings:{title:"Position actuelle"}, showPopup : false}).addTo(map);
+
+
 //************************************ */
-//Google StreetView
+
+// Buttons
+// Import GPX Button
+document.getElementById('gpx-input')
+    .addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var gpxContent = e.target.result;;
+            new L.GPXHelper(gpxContent, {
+                marker_options : {
+                    addStartEndIcons: true,
+                    wptIconUrl : 'res/marker-i-50x50_Violet.png',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                },
+                polyline_options : {
+                    color: '#a00af7',  //Violet
+                    weight: 3
+                }
+                }).on('loaded', function(e) {
+                var gpx = e.target;
+                map.fitBounds(gpx.getBounds());
+                layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Violet" + ")");
+            }).addTo(map);
+        }
+
+        reader.readAsText(file);
+    })
+
+
+// Download GPX Button
+var downloadTrack = function (fileName, mimeType) {
+    var coord = [];
+
+    if(routeCoords.length !== 0)
+    {
+        for(let i = 0; i < routeCoords.length; i++) {
+            for (let j = 0; j < routeCoords[i].coords.length; j++)
+                coord.push(routeCoords[i].coords[j]);
+        }
+    }
+    else
+        console.log("no routes to export");
+
+    var timestamp = new Date().toLocaleString('en-GB');
+    gpxcontent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n';
+
+    for (var i = 0; i < markers.length; i++) {
+        gpxcontent += '<wpt lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</wpt>\n';
+    }
+
+    if(coord.length !== 0) {
+        gpxcontent += "<trk>\n\t<name>" + timestamp + "</name>\n";
+        gpxcontent += "\t<trkseg>\n";
+        for (var i = 0; i < coord.length; i++) {
+            gpxcontent += '\t<trkpt lat="' + coord[i].lat + '" lon="' + coord[i].lng + '"></trkpt>\n';
+        }
+        gpxcontent += '\t</trkseg>\n</trk>\n';
+    }
+
+    gpxcontent += "</gpx>";
+
+    var a = document.createElement('a');
+    mimeType = mimeType || 'application/octet-stream';
+    if (navigator.msSaveBlob) { // IE10
+        navigator.msSaveBlob(new Blob([gpxcontent], {
+            type: mimeType
+        }), fileName);
+    } else if (URL && 'download' in a) { //html5 A[download]
+        a.href = URL.createObjectURL(new Blob([gpxcontent], {
+            type: mimeType
+        }));
+        a.setAttribute('download', fileName);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } else {
+        location.href = 'data:application/octet-stream,' + encodeURIComponent(gpxcontent); // only this mime type is supported
+    }
+}
+
+
+// Import Project Button
+document.getElementById('project-input')
+    .addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var filecontent = e.target.result;
+            var parser = new DOMParser();
+            setTimeout(function() 
+                {
+                    parseFile(parser.parseFromString(filecontent, "text/xml"));
+                });
+        }
+        reader.readAsText(file);
+    })
+
+var parseFile = function(file)
+{
+    var layers = [];
+
+    // parse markers
+    el = file.getElementsByTagName('marker');
+    for (i = 0; i < el.length; i++) {
+      var ll = new L.LatLng(
+          el[i].getAttribute('lat'),
+          el[i].getAttribute('lon'));
+
+      var nameEl = el[i].getElementsByTagName('name');
+      var name = nameEl.length > 0 ? nameEl[0].textContent : '';
+
+      var descEl = el[i].getElementsByTagName('desc');
+      var desc = descEl.length > 0 ? descEl[0].textContent : '';  
+
+      var marker = {"latlng": ll};
+      AddMarker(marker);
+    }
+
+    var routeCoords = file.getElementsByTagName('rte');
+    var dataCoords = [];
+    for (i = 0; i < routeCoords.length; i++) 
+    {
+        var routeCoord = routeCoords[i];
+        var segments = routeCoord.getElementsByTagName('rteseg');
+        for (j = 0; j < segments.length; j++) 
+        {
+            var el = segments[j].getElementsByTagName('rtept');
+            if (!el.length) return [];
+
+            var data = [];
+            for (var i = 0; i < el.length; i++) 
+            {
+                var ll = new L.LatLng(
+                    el[i].getAttribute('lat'),
+                    el[i].getAttribute('lon'));
+                data.push(ll);
+            }
+
+            dataCoords.push(data);
+
+            if(j === 0)
+            {
+                var wpt = {"latlng": data[0]};
+                AddWaypoint(wpt);
+            }
+            else if(j === segments.length - 1)
+            {
+                var wpt = {"latlng": data[0]};
+                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);
+                wpt = {"latlng": data[data.length - 1]};
+                AddWaypoint(wpt, dataCoords[dataCoords.length - 1]);
+                map.fitBounds([dataCoords[0][0], dataCoords[dataCoords.length - 1][dataCoords[dataCoords.length - 1].length - 1]]);
+            }
+            else
+            {
+                var wpt = {"latlng": data[0]};
+                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);     
+            }
+        }
+    }
+}
+
+
+// Download Project Button
+var downloadProject = function (fileName, mimeType) 
+{
+    var timestamp = new Date().toLocaleString('en-GB');
+    fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<twp>\n';
+
+    for (var i = 0; i < markers.length; i++) {
+        fileContent += '<marker lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</marker>\n';
+    }
+
+    if(routeCoords.length !== 0) {
+        fileContent += '<rte>\n';
+        for(let i = 0; i < routeCoords.length; i++) 
+        {
+            fileContent += '\t<rteseg>\n';
+            for (let j = 0; j < routeCoords[i].coords.length; j++) 
+                fileContent += '\t\t<rtept lat="' + routeCoords[i].coords[j].lat + '" lon="' + routeCoords[i].coords[j].lng + '"></rtept>\n';
+            
+            fileContent += '\t</rteseg>\n';
+        }
+
+        fileContent += '</rte>\n';
+    }
+
+    fileContent += '</twp>';
+
+    var a = document.createElement('a');
+    mimeType = mimeType || 'application/octet-stream';
+    if (navigator.msSaveBlob) { // IE10
+        navigator.msSaveBlob(new Blob([gpxcontent], {
+            type: mimeType
+        }), fileName);
+    } else if (URL && 'download' in a) { //html5 A[download]
+        a.href = URL.createObjectURL(new Blob([fileContent], {
+            type: mimeType
+        }));
+        a.setAttribute('download', fileName);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } else {
+        location.href = 'data:application/octet-stream,' + encodeURIComponent(fileContent); // only this mime type is supported
+    }
+}
+
+
+//************************************ */
+//Load database files
+var gpx = GPXDebug; // GPX as string used for debugging
+
+
+// Sections Autorisées/praticable par tout temps            => DB - Tout Schuss (Vert)
+// Sections Autorisées/praticable par temps sec uniquement  => DB - Ça glisse! (Orange)
+// Sections Tolérées                                        => DB - Tolérées (Rouge)
+// Sections Interdites                                      => DB - Verboten! (Noir)
+var fileArray = [
+    ["tracks/db/OK_Anytime.gpx", "#159917"],
+    ["tracks/db/OK_OnlyDry.gpx", "#f2ab11"],
+    ["tracks/db/Tolerated.gpx", "#f70a0a"],
+    ["tracks/db/Verboten.gpx", "#000000"]
+];
+
+for (const file of fileArray) {
+    new L.GPXHelper(file[0], {
+        polyline_options : {color: file[1], weight: 7, interactive: false}
+    }).on('loaded', function(e) {
+        var gpx = e.target;
+        layerControl.addOverlay(gpx, gpx.get_name());
+    }).addTo(map);
+}
+
+//Add Markers
+new L.GPXHelper("tracks/db/Markers.gpx", {
+        marker_options : {
+            wptIconUrl : 'res/marker-i-50x50_Orange.png',
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
+        }
+    }).on('loaded', function(e) {
+    }).addTo(map);
+
+/*new L.GPX(gpx, {async: true, gpx_options:{ joinTrackSegments: false}}).on('loaded', function(e) {
+    var gpx = e.target;
+    layerControl.addOverlay(gpx, gpx.get_name());
+}).addTo(map);*/
+
+/*new L.GPXHelper(GPXDebug, {
+    polyline_options : {color: "#159917"}
+    }).on('loaded', function(e) {
+        var gpx = e.target;
+        layerControl.addOverlay(gpx, gpx.get_name());
+    }).addTo(map);*/
+
+
+// Attendre que les overlays soient chargés
+setTimeout(function() {
+    // Accédez aux éléments DOM des étiquettes de couche d'overlay
+    var overlayLabels = document.querySelectorAll('.leaflet-control-layers-overlays label');
+
+    // Changez les couleurs des étiquettes de couche d'overlay
+    for (let i = 0; i < fileArray.length; i++) {
+        overlayLabels[i].style.color = fileArray[i][1]; 
+    }
+    // Changez les couleurs d'autres couches d'overlay comme souhaité
+}, 1000); // Attendre 1000 millisecondes (1 seconde) avant d'exécuter le code
+
+
+//OSM Data
+var file = "tracks/db/OSM_Data.xml";
+var req = new window.XMLHttpRequest();
+req.open('GET', file, true);
+try {
+    req.overrideMimeType('text/xml'); // unsupported by IE
+} catch(e) {}
+req.onreadystatechange = function() {
+    if (req.readyState != 4) return;
+    if(req.status == 200) 
+    {
+        console.log(req.responseXML);
+        parseOSMDataFile(req.responseXML);
+    }
+};
+req.send(null);
+
+function parseOSMDataFile(input)
+{
+    var metadata = input.getElementsByTagName('metadata');
+    OSMDataDateTime = metadata[0].getAttribute('creationtime');
+
+    // Définir l'icône personnalisée pour les marqueurs de barrières
+    var customIcon = L.icon({
+        iconUrl: 'res/round_red_blk_light.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+        iconSize: [20, 20], // Taille de l'icône [largeur, hauteur]
+        //iconAnchor: [0, 0], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+        popupAnchor: [0, 0] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
+        });
+
+    // Ajouter les barrières à la carte
+    var barriers = input.getElementsByTagName('barrier');
+    for (var i = 0; i < barriers.length; i++) {
+        var lat = barriers[i].getAttribute('lat');
+        var lon = barriers[i].getAttribute('lon');
+        var desc = barriers[i].getAttribute('desc');
+
+        var newMarker = L.marker([lat, lon], {
+            draggable: false,
+            icon: customIcon,
+        });
+
+        newMarker.bindPopup("<p><span style=\"text-decoration: underline;\"><strong>Barrière</strong></span>: " + desc + "</p>");
+        OSMDataMarkers.addLayer(newMarker);
+    }
+
+    // Ajouter les chemins à la carte en tant que polylignes
+    var ways = input.getElementsByTagName('way');
+    for (var i = 0; i < ways.length; i++) {
+        var waypts = ways[i].getElementsByTagName('waypt');
+        var coords = [];
+        for (var j = 0; j < waypts.length; j++) {
+            var lat = waypts[j].getAttribute('lat');
+            var lon = waypts[j].getAttribute('lon');
+            coords.push([lat, lon]);
+        }
+
+        OSMDataMarkers.addLayer(L.polyline(coords, {
+            color: '#972B14',  // Couleur de la ligne
+            weight: 5,      // Épaisseur de la ligne
+            dashArray: '10, 10'  // Alternance de traits rouges et espaces blancs
+        }));
+    }
+} 
+
+//************************************ */
+
+
+// Google StreetView
 function StartStreetview (e) {
     let lat = e.latlng.lat.toPrecision(8);
     let lon = e.latlng.lng.toPrecision(8);
@@ -191,7 +543,7 @@ function StartStreetview (e) {
 }
 
 //************************************ */
-//Routing
+// Routing
 
 
 //Demo version with OSM Demo servers. Use it for some debugging tasks
@@ -487,321 +839,6 @@ function dragEndMarkerHandler(e) {
     console.log("Markers array updated");
 }
 
-//************************************ */
-//Load database files
-var gpx = GPXDebug; // GPX as string used for debugging
-
-
-// Sections Autorisées/praticable par tout temps            => DB - Tout Schuss (Vert)
-// Sections Autorisées/praticable par temps sec uniquement  => DB - Ça glisse! (Orange)
-// Sections Tolérées                                        => DB - Tolérées (Rouge)
-// Sections Interdites                                      => DB - Verboten! (Noir)
-var fileArray = [
-    ["tracks/db/OK_Anytime.gpx", "#159917"],
-    ["tracks/db/OK_OnlyDry.gpx", "#f2ab11"],
-    ["tracks/db/Tolerated.gpx", "#f70a0a"],
-    ["tracks/db/Verboten.gpx", "#000000"]
-];
-
-for (const file of fileArray) {
-    new L.GPXHelper(file[0], {
-        polyline_options : {color: file[1], weight: 7, interactive: false}
-    }).on('loaded', function(e) {
-        var gpx = e.target;
-        layerControl.addOverlay(gpx, gpx.get_name());
-    }).addTo(map);
-}
-
-//Add Markers
-new L.GPXHelper("tracks/db/Markers.gpx", {
-        marker_options : {
-            wptIconUrl : 'res/marker-i-50x50_Orange.png',
-            iconSize: [30, 30],
-            iconAnchor: [15, 30]
-        }
-    }).on('loaded', function(e) {
-    }).addTo(map);
-
-/*new L.GPX(gpx, {async: true, gpx_options:{ joinTrackSegments: false}}).on('loaded', function(e) {
-    var gpx = e.target;
-    layerControl.addOverlay(gpx, gpx.get_name());
-}).addTo(map);*/
-
-/*new L.GPXHelper(GPXDebug, {
-    polyline_options : {color: "#159917"}
-    }).on('loaded', function(e) {
-        var gpx = e.target;
-        layerControl.addOverlay(gpx, gpx.get_name());
-    }).addTo(map);*/
-
-
-// Attendre que les overlays soient chargés
-setTimeout(function() {
-    // Accédez aux éléments DOM des étiquettes de couche d'overlay
-    var overlayLabels = document.querySelectorAll('.leaflet-control-layers-overlays label');
-
-    // Changez les couleurs des étiquettes de couche d'overlay
-    for (let i = 0; i < fileArray.length; i++) {
-        overlayLabels[i].style.color = fileArray[i][1]; 
-    }
-    // Changez les couleurs d'autres couches d'overlay comme souhaité
-}, 1000); // Attendre 1000 millisecondes (1 seconde) avant d'exécuter le code
-
-
-//OSM Data
-var file = "tracks/db/OSM_Data.xml";
-var req = new window.XMLHttpRequest();
-req.open('GET', file, true);
-try {
-    req.overrideMimeType('text/xml'); // unsupported by IE
-} catch(e) {}
-req.onreadystatechange = function() {
-    if (req.readyState != 4) return;
-    if(req.status == 200) 
-    {
-        console.log(req.responseXML);
-        parseOSMDataFile(req.responseXML);
-    }
-};
-req.send(null);
-
-function parseOSMDataFile(input)
-{
-    var layers = [];
-    var customIcon = L.icon({
-        iconUrl: 'res/round_red_blk_light.png', // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
-        iconSize: [20, 20], // Taille de l'icône [largeur, hauteur]
-        //iconAnchor: [0, 0], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
-        popupAnchor: [0, 0] // Point d'ancrage de la fenêtre contextuelle par rapport à l'icône
-        });
-
-    var barriers = input.getElementsByTagName('barriers');
-    for (i = 0; i < barriers.length; i++)
-    {
-        var barrier = barriers[i].getElementsByTagName('barrier')
-        for (i = 0; i < barrier.length; i++)
-        {
-            var newMarker = new L.marker([barrier[i].getAttribute('lat'), barrier[i].getAttribute('lon')], {
-            draggable: false,
-            icon: customIcon,
-            })
-            
-            newMarker.bindPopup("<b>Barrier</b>: " + barrier[i].getAttribute('desc')).openPopup();
-            //newMarker.addTo(OSMDataLayer);
-
-            OSMDataMarkers.addLayer(newMarker);
-        }
-    }
-}
-
-//************************************ */
-//Import GPX Button
-document.getElementById('gpx-input')
-    .addEventListener('change', function (e) {
-        var file = e.target.files[0];
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            var gpxContent = e.target.result;;
-            new L.GPXHelper(gpxContent, {
-                marker_options : {
-                    addStartEndIcons: true,
-                    wptIconUrl : 'res/marker-i-50x50_Violet.png',
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 30]
-                },
-                polyline_options : {
-                    color: '#a00af7',  //Violet
-                    weight: 3
-                }
-                }).on('loaded', function(e) {
-                var gpx = e.target;
-                map.fitBounds(gpx.getBounds());
-                layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Violet" + ")");
-            }).addTo(map);
-        }
-
-        reader.readAsText(file);
-    })
-
-//************************************ */
-//Download GPX Button
-var downloadTrack = function (fileName, mimeType) {
-    var coord = [];
-
-    if(routeCoords.length !== 0)
-    {
-        for(let i = 0; i < routeCoords.length; i++) {
-            for (let j = 0; j < routeCoords[i].coords.length; j++)
-                coord.push(routeCoords[i].coords[j]);
-        }
-    }
-    else
-        console.log("no routes to export");
-
-    var timestamp = new Date().toLocaleString('en-GB');
-    gpxcontent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n';
-
-    for (var i = 0; i < markers.length; i++) {
-        gpxcontent += '<wpt lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</wpt>\n';
-    }
-
-    if(coord.length !== 0) {
-        gpxcontent += "<trk>\n\t<name>" + timestamp + "</name>\n";
-        gpxcontent += "\t<trkseg>\n";
-        for (var i = 0; i < coord.length; i++) {
-            gpxcontent += '\t<trkpt lat="' + coord[i].lat + '" lon="' + coord[i].lng + '"></trkpt>\n';
-        }
-        gpxcontent += '\t</trkseg>\n</trk>\n';
-    }
-
-    gpxcontent += "</gpx>";
-
-    var a = document.createElement('a');
-    mimeType = mimeType || 'application/octet-stream';
-    if (navigator.msSaveBlob) { // IE10
-        navigator.msSaveBlob(new Blob([gpxcontent], {
-            type: mimeType
-        }), fileName);
-    } else if (URL && 'download' in a) { //html5 A[download]
-        a.href = URL.createObjectURL(new Blob([gpxcontent], {
-            type: mimeType
-        }));
-        a.setAttribute('download', fileName);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    } else {
-        location.href = 'data:application/octet-stream,' + encodeURIComponent(gpxcontent); // only this mime type is supported
-    }
-}
-
-//************************************ */
-//Import Project Button
-document.getElementById('project-input')
-    .addEventListener('change', function (e) {
-        var file = e.target.files[0];
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            var filecontent = e.target.result;
-            var parser = new DOMParser();
-            setTimeout(function() 
-                {
-                    parseFile(parser.parseFromString(filecontent, "text/xml"));
-                });
-        }
-        reader.readAsText(file);
-    })
-
-var parseFile = function(file)
-{
-    var layers = [];
-
-    // parse markers
-    el = file.getElementsByTagName('marker');
-    for (i = 0; i < el.length; i++) {
-      var ll = new L.LatLng(
-          el[i].getAttribute('lat'),
-          el[i].getAttribute('lon'));
-
-      var nameEl = el[i].getElementsByTagName('name');
-      var name = nameEl.length > 0 ? nameEl[0].textContent : '';
-
-      var descEl = el[i].getElementsByTagName('desc');
-      var desc = descEl.length > 0 ? descEl[0].textContent : '';  
-
-      var marker = {"latlng": ll};
-      AddMarker(marker);
-    }
-
-    var routeCoords = file.getElementsByTagName('rte');
-    var dataCoords = [];
-    for (i = 0; i < routeCoords.length; i++) 
-    {
-        var routeCoord = routeCoords[i];
-        var segments = routeCoord.getElementsByTagName('rteseg');
-        for (j = 0; j < segments.length; j++) 
-        {
-            var el = segments[j].getElementsByTagName('rtept');
-            if (!el.length) return [];
-
-            var data = [];
-            for (var i = 0; i < el.length; i++) 
-            {
-                var ll = new L.LatLng(
-                    el[i].getAttribute('lat'),
-                    el[i].getAttribute('lon'));
-                data.push(ll);
-            }
-
-            dataCoords.push(data);
-
-            if(j === 0)
-            {
-                var wpt = {"latlng": data[0]};
-                AddWaypoint(wpt);
-            }
-            else if(j === segments.length - 1)
-            {
-                var wpt = {"latlng": data[0]};
-                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);
-                wpt = {"latlng": data[data.length - 1]};
-                AddWaypoint(wpt, dataCoords[dataCoords.length - 1]);
-                map.fitBounds([dataCoords[0][0], dataCoords[dataCoords.length - 1][dataCoords[dataCoords.length - 1].length - 1]]);
-            }
-            else
-            {
-                var wpt = {"latlng": data[0]};
-                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);     
-            }
-        }
-    }
-}
-
-//************************************ */
-//Download Project Button
-var downloadProject = function (fileName, mimeType) 
-{
-    var timestamp = new Date().toLocaleString('en-GB');
-    fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<twp>\n';
-
-    for (var i = 0; i < markers.length; i++) {
-        fileContent += '<marker lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</marker>\n';
-    }
-
-    if(routeCoords.length !== 0) {
-        fileContent += '<rte>\n';
-        for(let i = 0; i < routeCoords.length; i++) 
-        {
-            fileContent += '\t<rteseg>\n';
-            for (let j = 0; j < routeCoords[i].coords.length; j++) 
-                fileContent += '\t\t<rtept lat="' + routeCoords[i].coords[j].lat + '" lon="' + routeCoords[i].coords[j].lng + '"></rtept>\n';
-            
-            fileContent += '\t</rteseg>\n';
-        }
-
-        fileContent += '</rte>\n';
-    }
-
-    fileContent += '</twp>';
-
-    var a = document.createElement('a');
-    mimeType = mimeType || 'application/octet-stream';
-    if (navigator.msSaveBlob) { // IE10
-        navigator.msSaveBlob(new Blob([gpxcontent], {
-            type: mimeType
-        }), fileName);
-    } else if (URL && 'download' in a) { //html5 A[download]
-        a.href = URL.createObjectURL(new Blob([fileContent], {
-            type: mimeType
-        }));
-        a.setAttribute('download', fileName);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    } else {
-        location.href = 'data:application/octet-stream,' + encodeURIComponent(fileContent); // only this mime type is supported
-    }
-}
 
 //*************************************/
 //Implementation Routing Perso GraphHoper
@@ -973,38 +1010,44 @@ function Decode (str, precision)
 //*************************************/
 var downloadOSMData = function (fileName, mimeType) 
 {
-    // Définir la requête Overpass pour récupérer les barrières sur les chemins
-
-    var overpassQuery = `[out:json][timeout:25];
-    area[name="Moselle"]->.a;
+    var overpassQuery = `[out:json][timeout:60];
+    area[name="Moselle"]->.moselleArea;
+    area[name="Vosges"]->.vosgesArea;
+    area[name="Meurthe-et-Moselle"]->.meurtheetmoselleArea;
+    area[name="Alsace"]->.alsaceArea;
     (
-        node(area.a)[barrier="chain"];
-        node(area.a)[barrier="jersey_barrier"];
-        node(area.a)[barrier="horse_stile"];
-        node(area.a)[barrier="kissing_gate"];
-        node(area.a)[barrier="stile"];
-        node(area.a)[barrier="block"];
-        node(area.a)[barrier="turnstile"];
-        node(area.a)[barrier="bus_trap"];
-        node(area.a)[barrier="cycle_barrier"];
-        node(area.a)[barrier="sump_buster"];
-        node(area.a)[barrier="fence"];
-        node(area.a)[barrier="debris"];
-        node(area.a)[barrier="lift_gate"];
-        node(area.a)[barrier="bollard"];
-        node(area.a)[barrier="swing_gate"];
-        node(area.a)[barrier="yes"];
-        node(area.a)[barrier="gate"];
-        node(area.a)[barrier="entrance"];
-        node(area.a)[barrier="ditch"];
+        node(area.moselleArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
+        node(area.vosgesArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
+        node(area.meurtheetmoselleArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
+        node(area.alsaceArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
+        way(area.moselleArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
+        way(area.moselleArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.moselleArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.moselleArea)[access~"no|private|destination|customers|agricultural|forestry"];
+        way(area.moselleArea)[bicycle~"designated"];
+        way(area.vosgesArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
+        way(area.vosgesArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.vosgesArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.vosgesArea)[access~"no|private|destination|customers|agricultural|forestry"];
+        way(area.vosgesArea)[bicycle~"designated"];
+        way(area.meurtheetmoselleArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
+        way(area.meurtheetmoselleArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.meurtheetmoselleArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.meurtheetmoselleArea)[access~"no|private|destination|customers|agricultural|forestry"];
+        way(area.meurtheetmoselleArea)[bicycle~"designated"];
+        way(area.alsaceArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
+        way(area.alsaceArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.alsaceArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
+        way(area.alsaceArea)[access~"no|private|destination|customers|agricultural|forestry"];
+        way(area.alsaceArea)[bicycle~"designated"];
     );
-    out center;
+    out geom;
     >;
     out skel qt;`;
 
     // URL de l'API Overpass
     var overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
-    console.log("Overpass URL:",overpassUrl);
+    console.log("Overpass URL:", overpassUrl);
 
     fetch(overpassUrl)
     .then(response => {
@@ -1018,30 +1061,43 @@ var downloadOSMData = function (fileName, mimeType)
         var barriers = [];
 
         data.elements.forEach(function(element) {
-            if (element.type === 'node') 
-                barriers.push({"lat" : element.lat, "lon" : element.lon, "desc" : element.tags.barrier});
-        })
+            if (element.type === 'node' && element.tags && element.tags.barrier) {
+                barriers.push({"lat": element.lat, "lon": element.lon, "desc": element.tags.barrier});
+            }
+        });
 
         var timestamp = new Date().toLocaleString('en-GB');
-        fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<barriers>\n';
+        var fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<osmdata>\n\t<metadata creationtime="' + timestamp + '"></metadata>\n\t<barriers>\n';
 
-        for (var i = 0; i < barriers.length; i++) 
-        {
-            fileContent += '\t<barrier lat="' + barriers[i].lat + '" lon="' + barriers[i].lon + '" desc="' + barriers[i].desc + '"></barrier>\n';
-        }
+        barriers.forEach(function(barrier) {
+            fileContent += '\t\t<barrier lat="' + barrier.lat + '" lon="' + barrier.lon + '" desc="' + barrier.desc + '"></barrier>\n';
+        });
 
-        fileContent += '</barriers>';
+        fileContent += '\t</barriers>\n\t<ways>\n';
+
+        var ways = data.elements
+            .filter(element => element.type === 'way')
+            .map(element => element.geometry.map(coord => ({ lat: coord.lat, lon: coord.lon })));
+
+            ways.forEach(function(path) {
+                fileContent += '\t\t<way>\n';
+                path.forEach(function(point) {
+                    fileContent += '\t\t\t<waypt lat="' + point.lat + '" lon="' + point.lon + '"></waypt>\n';
+                });
+                fileContent += '\t\t</way>\n';
+            });
+    
+            fileContent += '\t</ways>\n</osmdata>';
+
+        //Constitution du fichier et download
+        var fileName = 'OSM_Data.xml';
+        var mimeType = 'application/xml';
 
         var a = document.createElement('a');
-        mimeType = mimeType || 'application/octet-stream';
         if (navigator.msSaveBlob) { // IE10
-            navigator.msSaveBlob(new Blob([gpxcontent], {
-                type: mimeType
-            }), fileName);
+            navigator.msSaveBlob(new Blob([fileContent], { type: mimeType }), fileName);
         } else if (URL && 'download' in a) { //html5 A[download]
-            a.href = URL.createObjectURL(new Blob([fileContent], {
-                type: mimeType
-            }));
+            a.href = URL.createObjectURL(new Blob([fileContent], { type: mimeType }));
             a.setAttribute('download', fileName);
             document.body.appendChild(a);
             a.click();
@@ -1053,8 +1109,8 @@ var downloadOSMData = function (fileName, mimeType)
 
         .catch(error => {
             // Gestion des erreurs
-            alert("Une erreur s'est produite lors de la requête Overpass: ", error.message);
-        });  
+            alert("Une erreur s'est produite lors de la requête Overpass: " + error.message);
+        });
 }
 //
 
@@ -1076,8 +1132,142 @@ function displayOSMData()
 
 //About button
 function showInfo() {
-    alert("Version: 0.8.0")
+    //alert("Version: 0.8.0")
+    var content = '<p>Originator: Nicks<br />Version: 0.8.0 (2024-05-18)<br />Donn&eacute;es OSM: ' + OSMDataDateTime + '</p>' + 
+    '<h2>Routing</h2>' + 
+    '<p>Le routing utilise l\'API Graphhoper (<a href="https://www.graphhopper.com/">GraphHopper Directions API with Route Optimization</a>).</p>' + 
+    '<h2>Donn&eacute;es OSM</h2>' + 
+    '<p>Les donn&eacute;es ci-dessous sont r&eacute;cup&eacute;r&eacute;es de la base de donn&eacute;es Open Street Map via Overpass. Elle couvre les zones du d&eacute;partement de la moselle,...</p>' + 
+    '<h4>Barri&egrave;res:</h4>' + 
+    '<p>Les types de barri&egrave;res suivantes sont affich&eacute;es.</p>' + 
+    '<table style="height: 144px; width: 80%; border-collapse: collapse; margin-left: auto; margin-right: auto;" border="1">' + 
+    '<tbody>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">chain</td>' + 
+    '<td style="width: 85%; height: 18px;">Chaine tendue emp&ecirc;chant le passage des v&eacute;hicules motoris&eacute;s.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">swing_gate</td>' + 
+    '<td style="width: 85%; height: 18px;">Barri&egrave;re tournante.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">gate</td>' + 
+    '<td style="width: 85%; height: 18px;">Partie contig&uuml;e &agrave; un mur ou une cl&ocirc;ture qui peut &ecirc;tre ouverte pour permettre le passage: barri&egrave;re, portail.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">lift_gate</td>' + 
+    '<td style="width: 85%; height: 18px;">Une barri&egrave;re levante est une perche pivotante de mani&egrave;re &agrave; pouvoir bloquer l\'acc&egrave;s des v&eacute;hicules par un point contr&ocirc;l&eacute;.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">cycle_barrier</td>' + 
+    '<td style="width: 85%; height: 18px;">Barri&egrave;res sur la voie destin&eacute;es &agrave; ralentir voire interdire l\'acc&egrave;s aux cyclistes.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 54px;">' + 
+    '<td style="width: 15%; height: 54px;">bollard</td>' + 
+    '<td style="width: 85%; height: 54px;">Obstacles solides de petite taille (poteau, borne...), habituellement en b&eacute;ton ou m&eacute;tal et plac&eacute;s au travers de la route (fr&eacute;quemment en plastique lorsqu\'ils bordent des voies) et destin&eacute;s &agrave; emp&ecirc;cher l\'acc&egrave;s &agrave; certains v&eacute;hicules.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">jersey_barrier</td>' + 
+    '<td style="width: 85%;">barri&egrave;re compos&eacute;e de blocs pr&eacute;fabriqu&eacute;s lourds.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">block</td>' + 
+    '<td style="width: 85%;">Un ou plusieurs gros bloc(s) immobile(s) emp&ecirc;chant l\'acc&egrave;s libre le long d\'un chemin.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">debris</td>' + 
+    '<td style="width: 85%;">D&eacute;bris, gravats, avec ou sans terre bloquant une route.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">stile</td>' + 
+    '<td style="width: 85%;">&Eacute;chalier</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">horse_stile</td>' + 
+    '<td style="width: 85%;">Un &eacute;chalier permet aux pi&eacute;tons et aux chevaux de franchir un espace &agrave; travers une cl&ocirc;ture.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">kissing_gate</td>' + 
+    '<td style="width: 85%;">Portillon &agrave; chicane mobile.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">turnstile</td>' + 
+    '<td style="width: 85%;">Un passage &agrave; pied &agrave; travers une cl&ocirc;ture.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">bus_trap</td>' + 
+    '<td style="width: 85%;">Portion de route o&ugrave; un trou central emp&ecirc;che le passage de certains v&eacute;hicule.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">fence</td>' + 
+    '<td style="width: 85%;">Structure autoportante con&ccedil;ue pour restreindre ou emp&ecirc;cher le mouvement au-del&agrave; d\'une limite, qui se distingue g&eacute;n&eacute;ralement d\'un mur par la l&eacute;g&egrave;ret&eacute; de sa construction.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">entrance</td>' + 
+    '<td style="width: 85%;">Une ouverture ou un espace dans un obstacle.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">ditch</td>' + 
+    '<td style="width: 85%;">Un foss&eacute; ou une tranch&eacute; emp&ecirc;chant l\'acc&egrave;s &agrave; l\'autre c&ocirc;t&eacute;.</td>' + 
+    '</tr>' + 
+    '<tr>' + 
+    '<td style="width: 15%;">yes</td>' + 
+    '<td style="width: 85%;">Barri&egrave;re dont le type n\'est pas sp&eacute;cifi&eacute;.</td>' + 
+    '</tr>' + 
+    '</tbody>' + 
+    '</table>'
+
+    var winOpts = L.control.window(map,
+        {title: '<h1 style="text-align: center;"><strong>Trail Webmap</strong></h1>',
+        content: content,
+        modal: true,
+        maxWidth:1000,
+        visible: true});
 }
+
+//testOverpass();
+
+function testOverpass() {
+    // Définir la requête Overpass pour récupérer les barrières sur les chemins
+
+    var overpassQuery = `[out:json][timeout:60];
+    area[name="Moselle"]->.moselleArea;
+    
+    (
+      way(area.moselleArea)[motorcar~"no"];
+    );
+    
+    out geom;
+    >;
+    out skel qt;`;
+
+    // URL de l'API Overpass
+    var overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+
+    fetch(overpassUrl)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erreur lors de la requête à l\'API Overpass');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Traitement des données en cas de succès
+        var ways = data.elements
+                .filter(element => element.type === 'way')
+                .map(element => element.geometry.map(coord => [coord.lat, coord.lon]));
+
+            // Ajouter les chemins à la carte en tant que polylignes
+            ways.forEach(path => {
+                L.polyline(path).addTo(map);
+            });
+    })
+        
+        .catch(error => {
+            // Gestion des erreurs
+            alert("Une erreur s'est produite lors de la requête Overpass: " + error.message);
+        });
+}   
 
 
 
