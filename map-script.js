@@ -487,7 +487,7 @@ req.send(null);
 function parseOSMDataFile(input)
 {
     var metadata = input.getElementsByTagName('metadata');
-    OSMDataDateTime = metadata[0].getAttribute('creationtime');
+    //OSMDataDateTime = metadata[0].getAttribute('creationtime');
 
     // Définir l'icône personnalisée pour les marqueurs de barrières
     var customIcon = L.icon({
