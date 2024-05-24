@@ -1,3 +1,6 @@
+const Version = '0.8.0 (2024-05-18)'
+
+
 //Sample GPX as string for debugging purposes
 const GPXDebug = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
 '<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n' +
@@ -104,7 +107,7 @@ L.control.zoom({
     position: 'topright'
 }).addTo(map);
 
-//markerGroup.addTo(map);
+markerGroup.addTo(map);
 
 //************************************ */
 
@@ -487,7 +490,7 @@ req.send(null);
 function parseOSMDataFile(input)
 {
     var metadata = input.getElementsByTagName('metadata');
-    //OSMDataDateTime = metadata[0].getAttribute('creationtime');
+    OSMDataDateTime = metadata[0].getAttribute('creationtime');
 
     // Définir l'icône personnalisée pour les marqueurs de barrières
     var customIcon = L.icon({
@@ -876,6 +879,7 @@ function GetRouteCoords(wps)
 
     var points = locs.join('&');
     const apiUrl = `https://graphhopper.com/api/1/route?${points}&profile=bike&key=${apiKey}&instructions=false`;
+    console.log(apiUrl);
 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -1020,26 +1024,26 @@ var downloadOSMData = function (fileName, mimeType)
         node(area.vosgesArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
         node(area.meurtheetmoselleArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
         node(area.alsaceArea)[barrier~"chain|jersey_barrier|horse_stile|kissing_gate|stile|block|turnstile|bus_trap|cycle_barrier|fence|debris|lift_gate|bollard|swing_gate|yes|gate|entrance|ditch"];
-        way(area.moselleArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
-        way(area.moselleArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.moselleArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.moselleArea)[access~"no|private|destination|customers|agricultural|forestry"];
-        way(area.moselleArea)[bicycle~"designated"];
-        way(area.vosgesArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
-        way(area.vosgesArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.vosgesArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.vosgesArea)[access~"no|private|destination|customers|agricultural|forestry"];
-        way(area.vosgesArea)[bicycle~"designated"];
-        way(area.meurtheetmoselleArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
-        way(area.meurtheetmoselleArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.meurtheetmoselleArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.meurtheetmoselleArea)[access~"no|private|destination|customers|agricultural|forestry"];
-        way(area.meurtheetmoselleArea)[bicycle~"designated"];
-        way(area.alsaceArea)[motorcar~"no|private|destination|customers|agricultural|forestry"];
-        way(area.alsaceArea)[motor_vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.alsaceArea)[vehicle~"no|private|destination|customers|agricultural|forestry"];
-        way(area.alsaceArea)[access~"no|private|destination|customers|agricultural|forestry"];
-        way(area.alsaceArea)[bicycle~"designated"];
+        way(area.moselleArea)[motorcar~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.moselleArea)[motor_vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.moselleArea)[vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.moselleArea)[access~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.moselleArea)[bicycle~"designated"][!"amenity=parking"];
+        way(area.vosgesArea)[motorcar~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.vosgesArea)[motor_vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.vosgesArea)[vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.vosgesArea)[access~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.vosgesArea)[bicycle~"designated"]["amenity"!="parking"];
+        way(area.meurtheetmoselleArea)[motorcar~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.meurtheetmoselleArea)[motor_vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.meurtheetmoselleArea)[vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.meurtheetmoselleArea)[access~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.meurtheetmoselleArea)[bicycle~"designated"]["amenity"!="parking"];
+        way(area.alsaceArea)[motorcar~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.alsaceArea)[motor_vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.alsaceArea)[vehicle~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.alsaceArea)[access~"no|destination|customers|agricultural|forestry"]["amenity"!="parking"];
+        way(area.alsaceArea)[bicycle~"designated"]["amenity"!="parking"];
     );
     out geom;
     >;
@@ -1070,7 +1074,8 @@ var downloadOSMData = function (fileName, mimeType)
         var fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<osmdata>\n\t<metadata creationtime="' + timestamp + '"></metadata>\n\t<barriers>\n';
 
         barriers.forEach(function(barrier) {
-            fileContent += '\t\t<barrier lat="' + barrier.lat + '" lon="' + barrier.lon + '" desc="' + barrier.desc + '"></barrier>\n';
+            if(isOutsideRadius(barrier.lat, barrier.lon))
+                fileContent += '\t\t<barrier lat="' + barrier.lat + '" lon="' + barrier.lon + '" desc="' + barrier.desc + '"></barrier>\n';
         });
 
         fileContent += '\t</barriers>\n\t<ways>\n';
@@ -1082,7 +1087,8 @@ var downloadOSMData = function (fileName, mimeType)
             ways.forEach(function(path) {
                 fileContent += '\t\t<way>\n';
                 path.forEach(function(point) {
-                    fileContent += '\t\t\t<waypt lat="' + point.lat + '" lon="' + point.lon + '"></waypt>\n';
+                    if(isOutsideRadius(point.lat, point.lon))
+                        fileContent += '\t\t\t<waypt lat="' + point.lat + '" lon="' + point.lon + '"></waypt>\n';
                 });
                 fileContent += '\t\t</way>\n';
             });
@@ -1112,6 +1118,56 @@ var downloadOSMData = function (fileName, mimeType)
             alert("Une erreur s'est produite lors de la requête Overpass: " + error.message);
         });
 }
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const toRadians = (degree) => degree * (Math.PI / 180);
+    const R = 6371e3; // Rayon de la Terre en mètres
+
+    const φ1 = toRadians(lat1);
+    const φ2 = toRadians(lat2);
+    const Δφ = toRadians(lat2 - lat1);
+    const Δλ = toRadians(lon2 - lon1);
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distance en mètres
+}
+
+function isOutsideRadius(lat, lon) {
+    const metzLatitude = 49.1193;
+    const metzLongitude = 6.1757;
+    const metzRadiusMeters = 10 * 1000;
+
+    const nancyLatitude = 48.6921;
+    const nancyLongitude = 6.1844;
+    const nancyRadiusMeters = 10 * 1000;
+
+    const strasbourgLatitude = 48.5734;
+    const strasbourgLongitude = 7.7521;
+    const strasbourgRadiusMeters = 10 * 1000;
+
+    const mulhouseLatitude = 47.7508;
+    const mulhouseLongitude = 7.3359;
+    const mulhouseRadiusMeters = 10 * 1000;
+
+    
+    if(haversineDistance(metzLatitude, metzLongitude, lat, lon) < metzRadiusMeters)
+        return false;
+
+    if(haversineDistance(nancyLatitude, nancyLongitude, lat, lon) < nancyRadiusMeters)
+        return false;
+
+    if(haversineDistance(strasbourgLatitude, strasbourgLongitude, lat, lon) < strasbourgRadiusMeters)
+        return false;
+
+    if(haversineDistance(mulhouseLatitude, mulhouseLongitude, lat, lon) < mulhouseRadiusMeters)
+        return false;
+
+    return true;
+}
 //
 
 function displayOSMData()
@@ -1132,15 +1188,14 @@ function displayOSMData()
 
 //About button
 function showInfo() {
-    //alert("Version: 0.8.0")
-    var content = '<p>Originator: Nicks<br />Version: 0.8.0 (2024-05-18)<br />Donn&eacute;es OSM: ' + OSMDataDateTime + '</p>' + 
+    var content = '<p>Originator: Nicks<br />Version: ' + Version + '<br />Donn&eacute;es OSM: ' + OSMDataDateTime + '</p>' + 
     '<h2>Routing</h2>' + 
     '<p>Le routing utilise l\'API Graphhoper (<a href="https://www.graphhopper.com/">GraphHopper Directions API with Route Optimization</a>).</p>' + 
     '<h2>Donn&eacute;es OSM</h2>' + 
-    '<p>Les donn&eacute;es ci-dessous sont r&eacute;cup&eacute;r&eacute;es de la base de donn&eacute;es Open Street Map via Overpass. Elle couvre les zones du d&eacute;partement de la moselle,...</p>' + 
+    '<p>Les donn&eacute;es ci-dessous sont r&eacute;cup&eacute;r&eacute;es de la base de donn&eacute;es Open Street Map via Overpass. Elle couvre les zones des d&eacute;partements de la Moselle, Meurthe-et-Moselle, Vosges, Haut-Rhin et Bas-Rhin.</p>' + 
     '<h4>Barri&egrave;res:</h4>' + 
     '<p>Les types de barri&egrave;res suivantes sont affich&eacute;es.</p>' + 
-    '<table style="height: 144px; width: 80%; border-collapse: collapse; margin-left: auto; margin-right: auto;" border="1">' + 
+    '<table style="height: 450px; width: 80%; border-collapse: collapse; margin-left: auto; margin-right: auto;" border="1">' + 
     '<tbody>' + 
     '<tr style="height: 18px;">' + 
     '<td style="width: 15%; height: 18px;">chain</td>' + 
@@ -1166,53 +1221,83 @@ function showInfo() {
     '<td style="width: 15%; height: 54px;">bollard</td>' + 
     '<td style="width: 85%; height: 54px;">Obstacles solides de petite taille (poteau, borne...), habituellement en b&eacute;ton ou m&eacute;tal et plac&eacute;s au travers de la route (fr&eacute;quemment en plastique lorsqu\'ils bordent des voies) et destin&eacute;s &agrave; emp&ecirc;cher l\'acc&egrave;s &agrave; certains v&eacute;hicules.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">jersey_barrier</td>' + 
-    '<td style="width: 85%;">barri&egrave;re compos&eacute;e de blocs pr&eacute;fabriqu&eacute;s lourds.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">jersey_barrier</td>' + 
+    '<td style="width: 85%; height: 18px;">barri&egrave;re compos&eacute;e de blocs pr&eacute;fabriqu&eacute;s lourds.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">block</td>' + 
-    '<td style="width: 85%;">Un ou plusieurs gros bloc(s) immobile(s) emp&ecirc;chant l\'acc&egrave;s libre le long d\'un chemin.</td>' + 
+    '<tr style="height: 36px;">' + 
+    '<td style="width: 15%; height: 36px;">block</td>' + 
+    '<td style="width: 85%; height: 36px;">Un ou plusieurs gros bloc(s) immobile(s) emp&ecirc;chant l\'acc&egrave;s libre le long d\'un chemin.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">debris</td>' + 
-    '<td style="width: 85%;">D&eacute;bris, gravats, avec ou sans terre bloquant une route.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">debris</td>' + 
+    '<td style="width: 85%; height: 18px;">D&eacute;bris, gravats, avec ou sans terre bloquant une route.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">stile</td>' + 
-    '<td style="width: 85%;">&Eacute;chalier</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">stile</td>' + 
+    '<td style="width: 85%; height: 18px;">&Eacute;chalier</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">horse_stile</td>' + 
-    '<td style="width: 85%;">Un &eacute;chalier permet aux pi&eacute;tons et aux chevaux de franchir un espace &agrave; travers une cl&ocirc;ture.</td>' + 
+    '<tr style="height: 36px;">' + 
+    '<td style="width: 15%; height: 36px;">horse_stile</td>' + 
+    '<td style="width: 85%; height: 36px;">Un &eacute;chalier permet aux pi&eacute;tons et aux chevaux de franchir un espace &agrave; travers une cl&ocirc;ture.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">kissing_gate</td>' + 
-    '<td style="width: 85%;">Portillon &agrave; chicane mobile.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">kissing_gate</td>' + 
+    '<td style="width: 85%; height: 18px;">Portillon &agrave; chicane mobile.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">turnstile</td>' + 
-    '<td style="width: 85%;">Un passage &agrave; pied &agrave; travers une cl&ocirc;ture.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">turnstile</td>' + 
+    '<td style="width: 85%; height: 18px;">Un passage &agrave; pied &agrave; travers une cl&ocirc;ture.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">bus_trap</td>' + 
-    '<td style="width: 85%;">Portion de route o&ugrave; un trou central emp&ecirc;che le passage de certains v&eacute;hicule.</td>' + 
+    '<tr style="height: 36px;">' + 
+    '<td style="width: 15%; height: 36px;">bus_trap</td>' + 
+    '<td style="width: 85%; height: 36px;">Portion de route o&ugrave; un trou central emp&ecirc;che le passage de certains v&eacute;hicule.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">fence</td>' + 
-    '<td style="width: 85%;">Structure autoportante con&ccedil;ue pour restreindre ou emp&ecirc;cher le mouvement au-del&agrave; d\'une limite, qui se distingue g&eacute;n&eacute;ralement d\'un mur par la l&eacute;g&egrave;ret&eacute; de sa construction.</td>' + 
+    '<tr style="height: 54px;">' + 
+    '<td style="width: 15%; height: 54px;">fence</td>' + 
+    '<td style="width: 85%; height: 54px;">Structure autoportante con&ccedil;ue pour restreindre ou emp&ecirc;cher le mouvement au-del&agrave; d\'une limite, qui se distingue g&eacute;n&eacute;ralement d\'un mur par la l&eacute;g&egrave;ret&eacute; de sa construction.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">entrance</td>' + 
-    '<td style="width: 85%;">Une ouverture ou un espace dans un obstacle.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">entrance</td>' + 
+    '<td style="width: 85%; height: 18px;">Une ouverture ou un espace dans un obstacle.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">ditch</td>' + 
-    '<td style="width: 85%;">Un foss&eacute; ou une tranch&eacute; emp&ecirc;chant l\'acc&egrave;s &agrave; l\'autre c&ocirc;t&eacute;.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">ditch</td>' + 
+    '<td style="width: 85%; height: 18px;">Un foss&eacute; ou une tranch&eacute; emp&ecirc;chant l\'acc&egrave;s &agrave; l\'autre c&ocirc;t&eacute;.</td>' + 
     '</tr>' + 
-    '<tr>' + 
-    '<td style="width: 15%;">yes</td>' + 
-    '<td style="width: 85%;">Barri&egrave;re dont le type n\'est pas sp&eacute;cifi&eacute;.</td>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 15%; height: 18px;">yes</td>' + 
+    '<td style="width: 85%; height: 18px;">Barri&egrave;re dont le type n\'est pas sp&eacute;cifi&eacute;.</td>' + 
+    '</tr>' + 
+    '</tbody>' + 
+    '</table>' + 
+    '<h4>Chemins interdits:</h4>' + 
+    '<p>Les types de chemins interdits suivants sont affich&eacute;s:</p>' + 
+    '<table style="width: 80%; border-collapse: collapse; margin-left: auto; margin-right: auto; height: 144px;" border="1">' + 
+    '<tbody>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 30%; height: 18px;">no</td>' + 
+    '<td style="width: 70%; height: 18px;">Interdiction g&eacute;n&eacute;rale d\'acc&egrave;s</td>' + 
+    '</tr>' + 
+    '<tr style="height: 54px;">' + 
+    '<td style="width: 30%; height: 54px;">destination</td>' + 
+    '<td style="width: 70%; height: 54px;">Acc&egrave;s r&eacute;serv&eacute; aux personnes ou v&eacute;hicules ayant cet &eacute;l&eacute;ment comme destination. Utilis&eacute; par exemple pour le panneau &laquo;&nbsp;Interdit sauf riverains&nbsp;&raquo;.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 30%; height: 18px;">customers</td>' + 
+    '<td style="width: 70%; height: 18px;">Acc&egrave;s r&eacute;serv&eacute; aux clients</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 30%; height: 18px;">agricultural</td>' + 
+    '<td style="width: 70%; height: 18px;">Acc&egrave;s r&eacute;serv&eacute; aux engins agricoles</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 30%; height: 18px;">forestry</td>' + 
+    '<td style="width: 70%; height: 18px;">Acc&egrave;s r&eacute;serv&eacute; aux engins forestiers.</td>' + 
+    '</tr>' + 
+    '<tr style="height: 18px;">' + 
+    '<td style="width: 30%; height: 18px;">designated (bicycle)</td>' + 
+    '<td style="width: 70%; height: 18px;">Voie r&eacute;serv&eacute;e aux cyclistes</td>' + 
     '</tr>' + 
     '</tbody>' + 
     '</table>'
