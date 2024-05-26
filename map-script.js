@@ -1,4 +1,4 @@
-const Version = '0.8.0 (2024-05-18)'
+const Version = '0.9.0 (2024-05-26)'
 
 
 //Sample GPX as string for debugging purposes
@@ -48,6 +48,7 @@ let routePolyline = null;
 var OSMDataHidden = true;
 var buttonDisplayOSMData;
 var OSMDataDateTime;
+var routingProfile = "bike";
 
 //************* */
 
@@ -94,11 +95,11 @@ var map = L.map('map', {
     layers: [osm]});
 
 var baseMaps = {
-"OpenStreetMap": osm,
-"Google Hybrid": googleHybrid,
-"Google Streets": googleStreets,
-"Google Terrain": googleTerrain,
-"IGN": IGN
+    "OpenStreetMap": osm,
+    "Google Hybrid": googleHybrid,
+    "Google Streets": googleStreets,
+    "Google Terrain": googleTerrain,
+    "IGN": IGN
 };
 
 var layerControl = L.control.layers(baseMaps).addTo(map);
@@ -118,7 +119,6 @@ var CustomControl = L.Control.extend({
     options: {
         position: 'topleft',
     },
-
     onAdd: function(map) {
         var container = L.DomUtil.create('div', 'custom-control-container');
 
@@ -131,7 +131,7 @@ var CustomControl = L.Control.extend({
         var buttonDownloadGPX = L.DomUtil.create('button', 'custom-control-button2', container);
         buttonDownloadGPX.innerHTML = 'Télécharger fichier GPX';
         buttonDownloadGPX.onclick = function() {
-            downloadTrack('track.gpx', 'text/csv;encoding:utf-8')
+            downloadTrack('track.gpx', 'text/csv;encoding:utf-8');
         };
 
         var buttonImportProject = L.DomUtil.create('button', 'custom-control-button', container);
@@ -143,30 +143,29 @@ var CustomControl = L.Control.extend({
         var buttonDownloadProject = L.DomUtil.create('button', 'custom-control-button', container);
         buttonDownloadProject.innerHTML = 'Télécharger projet';
         buttonDownloadProject.onclick = function() {
-            downloadProject('Trail_Webmap_Project.twp', 'text/csv;encoding:utf-8')
+            downloadProject('Trail_Webmap_Project.twp', 'text/csv;encoding:utf-8');
         };
 
         buttonDisplayOSMData = L.DomUtil.create('button', 'custom-control-button', container);
         buttonDisplayOSMData.innerHTML = 'Afficher données OSM';
         buttonDisplayOSMData.onclick = function() {
-            displayOSMData()
+            displayOSMData();
         };
 
         var buttonDownloadOSMData = L.DomUtil.create('button', 'custom-control-button', container);
         buttonDownloadOSMData.innerHTML = 'Télécharger données OSM';
         buttonDownloadOSMData.onclick = function() {
-            downloadOSMData('OSM_Data.xml', 'text/csv;encoding:utf-8')
+            downloadOSMData('OSM_Data.xml');
         };
 
         var buttonAbout = L.DomUtil.create('button', 'custom-control-button', container);
         buttonAbout.innerHTML = 'Infos';
         buttonAbout.onclick = function() {
-            showInfo()
+            showInfo();
         };
 
         return container;
     },
-
     onRemove: function(map) {
         // Cleanup when removed
     }
@@ -175,6 +174,46 @@ var CustomControl = L.Control.extend({
 // Add the custom control to the map
 (new CustomControl()).addTo(map);
 
+// Information Control
+var InfoControl = L.Control.extend({
+    options: {
+        position: 'bottomright'
+    },
+    onAdd: function (map) {
+        var cheminDistance = 0;
+        var cheminTime = '0:00';
+        var secondDistance = 0;
+        var secondTime = '0:00';
+        var principDistance = 0;
+        var principTime = '0:00';
+        var fastDistance = 0;
+        var fastTime = '0:00';
+        var totalDistance = 0;
+        var totalTime = '0:00';
+        
+
+        var container = L.DomUtil.create('div', 'info-container');
+        container.innerHTML = '<div><label for="mode-select">Type routage:  </label>' +
+        '<select id="mode-select"><option value="bike">Tout-terrain</option><option value="car">Voiture</option></select></div>' + 
+        '<h4>Distance - Temps</h4>' +
+        '<p>Chemins: <span id="dist-path-value">' + cheminDistance + '</span> km - <span id="time-path-value">' + cheminTime + '</span><br />' +
+        'Routes secondaires: <span id="dist-second-value">' + secondDistance + '</span> km - <span id="time-second-value">' + secondTime + '</span><br />' + 
+        'Routes principales: <span id="dist-princip-value">' + principDistance + '</span> km - <span id="time-princip-value">' + principTime + '</span><br />' + 
+        'Voies rapides: <span id="dist-fast-value">' + fastDistance + '</span> km - <span id="time-fast-value">' + fastTime + '</span><br /></p>' + 
+        '<p><strong>Total: <span id="dist-total-value">' + totalDistance + '</span> km - <span id="time-total-value">' + totalTime + '</span></strong></p>';
+
+        //container.appendChild(ctx);
+        return container;
+    }
+});
+
+// Ajouter le contrôle personnalisé à la carte
+map.addControl(new InfoControl());
+
+document.getElementById('mode-select').addEventListener('change', function(event) 
+{
+    routingProfile = event.target.value;
+});
 
 // Geo Search Bar
 var geocoder = L.Control.geocoder({
@@ -194,39 +233,42 @@ var geocoder = L.Control.geocoder({
 
 
 // Geolocalization
-L.control.locate({position: "topright", strings:{title:"Position actuelle"}, showPopup : false}).addTo(map);
+L.control.locate({
+    position: "topright", 
+    strings:{title:"Position actuelle"}, 
+    showPopup : false
+}).addTo(map);
 
 
 //************************************ */
 
 // Buttons
 // Import GPX Button
-document.getElementById('gpx-input')
-    .addEventListener('change', function (e) {
-        var file = e.target.files[0];
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            var gpxContent = e.target.result;;
-            new L.GPXHelper(gpxContent, {
-                marker_options : {
-                    addStartEndIcons: true,
-                    wptIconUrl : 'res/marker-i-50x50_Violet.png',
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 30]
-                },
-                polyline_options : {
-                    color: '#a00af7',  //Violet
-                    weight: 3
-                }
-                }).on('loaded', function(e) {
-                var gpx = e.target;
-                map.fitBounds(gpx.getBounds());
-                layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Violet" + ")");
-            }).addTo(map);
-        }
+document.getElementById('gpx-input').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        var gpxContent = e.target.result;;
+        new L.GPXHelper(gpxContent, {
+            marker_options : {
+                addStartEndIcons: true,
+                wptIconUrl : 'res/marker-i-50x50_Violet.png',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            },
+            polyline_options : {
+                color: '#a00af7',  //Violet
+                weight: 3
+            }
+            }).on('loaded', function(e) {
+            var gpx = e.target;
+            map.fitBounds(gpx.getBounds());
+            layerControl.addOverlay(gpx, gpx.get_name() + " (" + "Violet" + ")");
+        }).addTo(map);
+    };
 
-        reader.readAsText(file);
-    })
+    reader.readAsText(file);
+});
 
 
 // Download GPX Button
@@ -282,20 +324,19 @@ var downloadTrack = function (fileName, mimeType) {
 
 
 // Import Project Button
-document.getElementById('project-input')
-    .addEventListener('change', function (e) {
-        var file = e.target.files[0];
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            var filecontent = e.target.result;
-            var parser = new DOMParser();
-            setTimeout(function() 
-                {
-                    parseFile(parser.parseFromString(filecontent, "text/xml"));
-                });
-        }
-        reader.readAsText(file);
-    })
+document.getElementById('project-input').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        var filecontent = e.target.result;
+        var parser = new DOMParser();
+        setTimeout(function() 
+            {
+                parseFile(parser.parseFromString(filecontent, "text/xml"));
+            });
+    }
+    reader.readAsText(file);
+})
 
 var parseFile = function(file)
 {
@@ -319,44 +360,52 @@ var parseFile = function(file)
     }
 
     var routeCoords = file.getElementsByTagName('rte');
-    var dataCoords = [];
+    var data = [];
     for (i = 0; i < routeCoords.length; i++) 
     {
         var routeCoord = routeCoords[i];
         var segments = routeCoord.getElementsByTagName('rteseg');
         for (j = 0; j < segments.length; j++) 
         {
+            var distance = parseFloat(segments[j].getAttribute('distance'));
+            var road_class = segments[j].getAttribute('road_class');
+            var surface = segments[j].getAttribute('surface');
+
             var el = segments[j].getElementsByTagName('rtept');
             if (!el.length) return [];
 
-            var data = [];
+            var coords = [];
+            var elev = [];
             for (var i = 0; i < el.length; i++) 
             {
                 var ll = new L.LatLng(
                     el[i].getAttribute('lat'),
                     el[i].getAttribute('lon'));
-                data.push(ll);
+                    coords.push(ll);
+                    elev.push(parseFloat(el[i].getAttribute('ele')));
             }
 
-            dataCoords.push(data);
+            data.push({"coords" : coords, "elevation" : elev, "distance" : distance, "road_class" : road_class, "surface" : surface});
 
             if(j === 0)
             {
-                var wpt = {"latlng": data[0]};
+                var wpt = {"latlng": coords[0]};
                 AddWaypoint(wpt);
             }
             else if(j === segments.length - 1)
             {
-                var wpt = {"latlng": data[0]};
-                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);
-                wpt = {"latlng": data[data.length - 1]};
-                AddWaypoint(wpt, dataCoords[dataCoords.length - 1]);
-                map.fitBounds([dataCoords[0][0], dataCoords[dataCoords.length - 1][dataCoords[dataCoords.length - 1].length - 1]]);
+                var wpt = {"latlng": coords[0]};
+                AddWaypoint(wpt, data[data.length - 2]);
+                wpt = {"latlng": coords[coords.length - 1]};
+                AddWaypoint(wpt, data[data.length - 1]);
+                var topleft = data[0].coords[0];
+                var bottomright = data[data.length - 1].coords[data[data.length - 1].coords.length - 1];
+                map.fitBounds([topleft, bottomright]);
             }
             else
             {
-                var wpt = {"latlng": data[0]};
-                AddWaypoint(wpt, dataCoords[dataCoords.length - 2]);     
+                var wpt = {"latlng": coords[0]};
+                AddWaypoint(wpt, data[data.length - 2]);     
             }
         }
     }
@@ -370,16 +419,16 @@ var downloadProject = function (fileName, mimeType)
     fileContent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<twp>\n';
 
     for (var i = 0; i < markers.length; i++) {
-        fileContent += '<marker lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</marker>\n';
+        fileContent += '<marker lat="' + markers[i].lat.toPrecision(6) + '" lon="' + markers[i].lng.toPrecision(6) + '">\n\t<name></name>\n\t<desc></desc>\n</marker>\n';
     }
 
     if(routeCoords.length !== 0) {
         fileContent += '<rte>\n';
         for(let i = 0; i < routeCoords.length; i++) 
         {
-            fileContent += '\t<rteseg>\n';
+            fileContent += '\t<rteseg distance="' + routeCoords[i].distance + '" road_class="' + routeCoords[i].road_class + '" surface="' + routeCoords[i].surface + '">\n';
             for (let j = 0; j < routeCoords[i].coords.length; j++) 
-                fileContent += '\t\t<rtept lat="' + routeCoords[i].coords[j].lat + '" lon="' + routeCoords[i].coords[j].lng + '"></rtept>\n';
+                fileContent += '\t\t<rtept lat="' + routeCoords[i].coords[j].lat + '" lon="' + routeCoords[i].coords[j].lng + '" ele="' + routeCoords[i].elevation[j] + '"></rtept>\n';
             
             fileContent += '\t</rteseg>\n';
         }
@@ -481,7 +530,7 @@ req.onreadystatechange = function() {
     if (req.readyState != 4) return;
     if(req.status == 200) 
     {
-        console.log(req.responseXML);
+        //console.log(req.responseXML);
         parseOSMDataFile(req.responseXML);
     }
 };
@@ -606,7 +655,7 @@ function AddWaypoint (e, routeCoordsData) {
     let lng = e.latlng.lng.toPrecision(8);
 
     waypoints.push({"ID": newMarker._leaflet_id, "lat": lat, "lng": lng, "LFMarker": newMarker});
-    console.log("Waypoint with ID "  + newMarker._leaflet_id + " added to array");
+    //console.log("Waypoint with ID "  + newMarker._leaflet_id + " added to array");
 
     if(waypoints.length > 2)   //on modifie l'icone du marquer pour qu'il devienne un point à la place du marqueur de fin d'itinéraire
     {
@@ -624,8 +673,9 @@ function AddWaypoint (e, routeCoordsData) {
     {
         if(routeCoordsData !== undefined)
         {
-            routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : routeCoordsData});
+            routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : routeCoordsData.coords, "elevation" : routeCoordsData.elevation, "distance" : routeCoordsData.distance, "road_class" : routeCoordsData.road_class, "surface" : routeCoordsData.surface});
             UpdateRoutePolyline(routeCoords);
+            UpdateDistances(routeCoords);
         }
         else
         {
@@ -634,8 +684,9 @@ function AddWaypoint (e, routeCoordsData) {
             wps.push({"lat" : waypoints[waypoints.length - 1].lat, "lng" : waypoints[waypoints.length - 1].lng});
             GetRouteCoords(wps)
             .then(data => {
-                routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : data[0]});
+                routeCoords.push({"WPStartID" : waypoints[waypoints.length - 2].ID, "WPEndID" : waypoints[waypoints.length - 1].ID, "coords" : data.points[0].coords, "elevation" : data.points[0].elev, "distance" : data.distance, "road_class" : data.road_class, "surface" : data.surface});
                 UpdateRoutePolyline(routeCoords);
+                UpdateDistances(routeCoords);
 
                 //correction de la position du marqueur pour être bien au milieu de la route:
                 var lastcoordsidx = routeCoords[routeCoords.length - 1].coords.length - 1;
@@ -670,6 +721,7 @@ function DeleteWaypoint (e) {
     {
         routeCoords.shift();
         UpdateRoutePolyline(routeCoords);
+        UpdateDistances(routeCoords);
 
         customIcon = L.icon({
             iconUrl: "res/pin-icon-start.png", // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
@@ -683,6 +735,15 @@ function DeleteWaypoint (e) {
     {
         routeCoords.pop();
         UpdateRoutePolyline(routeCoords);
+        UpdateDistances(routeCoords);
+
+        customIcon = L.icon({
+            iconUrl: "res/pin-icon-end.png", // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+            iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+            iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+            });
+
+        waypoints[waypoints.length - 1].LFMarker.setIcon(customIcon);
     }
     else
     {
@@ -695,9 +756,10 @@ function DeleteWaypoint (e) {
 
             GetRouteCoords(wps)
                 .then(data => {
-                    routeCoords[WPindex-1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data[0]};
+                    routeCoords[WPindex-1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data.points[0].coords, "elevation" : data.points[0].elev, "distance" : data.distance, "road_class" : data.road_class, "surface" : data.surface};
 
                     UpdateRoutePolyline(routeCoords);
+                    UpdateDistances(routeCoords);
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
@@ -705,14 +767,16 @@ function DeleteWaypoint (e) {
                     //waypoints.splice(0, -1);
                 });
         }
-        /*else  //Il ne reste plus qu'un marqueur sur la map -> on supprime la route
+        else  //Il ne reste plus qu'un marqueur sur la map -> on supprime la route
         {
-            if (routePolyline !== null) 
-            {
-                routePolyline.removeFrom(map);
-                routePolyline = null;
-            }
-        }*/
+            customIcon = L.icon({
+                iconUrl: "res/pin-icon-start.png", // Chemin de l'image sur le serveur. src: https://icons8.com/icons/set/marker--static
+                iconSize: [30, 30], // Taille de l'icône [largeur, hauteur]
+                iconAnchor: [15, 30], // Point d'ancrage de l'icône par rapport à son coin supérieur gauche
+                });
+    
+            waypoints[0].LFMarker.setIcon(customIcon);
+        }
     }
 }
 
@@ -723,7 +787,7 @@ function dragEndWaypointHandler(e) {
     let lat = e.target._latlng.lat.toPrecision(8);
     let lng = e.target._latlng.lng.toPrecision(8);
 
-    console.log("Waypoint with ID " + ID + " dragged");
+    //console.log("Waypoint with ID " + ID + " dragged");
     const WPindex = waypoints.findIndex(p => p.ID == e.target._leaflet_id);
     waypoints[WPindex] = {"ID": ID, "lat": lat, "lng": lng, "LFMarker": e.target};
     if(WPindex === 0)
@@ -742,8 +806,9 @@ function dragEndWaypointHandler(e) {
 
             GetRouteCoords(wps)
                 .then(data => {
-                    routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data[0]}
+                    routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data.points[0].coords, "elevation" : data.points[0].elev, "distance" : data.distance, "road_class" : data.road_class, "surface" : data.surface};
                     UpdateRoutePolyline(routeCoords);
+                    UpdateDistances(routeCoords);
                     })
                 .catch(error => {
                     console.error('Erreur:', error);
@@ -759,8 +824,9 @@ function dragEndWaypointHandler(e) {
 
             GetRouteCoords(wps)
                 .then(data => {
-                    routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data[0]}
+                    routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data.points[0].coords, "elevation" : data.points[0].elev, "distance" : data.distance, "road_class" : data.road_class, "surface" : data.surface};
                     UpdateRoutePolyline(routeCoords);
+                    UpdateDistances(routeCoords);
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
@@ -777,10 +843,11 @@ function dragEndWaypointHandler(e) {
 
             GetRouteCoords(wps)
             .then(data => {
-                routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data[0]}
-                routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data[1]}
+                routeCoords[WPindex - 1] = {"WPStartID" : waypoints[WPindex - 1].ID, "WPEndID" : waypoints[WPindex].ID, "coords" : data.points[0].coords, "elevation" : data.points[0].elev, "distance" : data.distance, "road_class" : data.road_class, "surface" : data.surface};
+                routeCoords[WPindex] = {"WPStartID" : waypoints[WPindex].ID, "WPEndID" : waypoints[WPindex + 1].ID, "coords" : data.points[1].coords, "elevation" : data.points[1].elev, "distance" : data.distance, "road_class" : data.road_class, "surface" : data.surface};
 
                 UpdateRoutePolyline(routeCoords);
+                UpdateDistances(routeCoords);
 
                 //correction de la position du marqueur pour être bien au milieu de la route:
                 var correctedCoords = routeCoords[WPindex].coords[0];
@@ -825,21 +892,21 @@ function AddMarker (e) {
     let lng = e.latlng.lng.toPrecision(8);
 
     markers.push({"ID": newMarker._leaflet_id, "lat": e.latlng.lat, "lng": e.latlng.lng});
-    console.log("Marker added. Markers array updated. ID: " + newMarker._leaflet_id + ", Lat: " + e.latlng.lat + ", Long: " + e.latlng.lng);
+    //console.log("Marker added. Markers array updated. ID: " + newMarker._leaflet_id + ", Lat: " + e.latlng.lat + ", Long: " + e.latlng.lng);
 }
 
 function DeleteMarker (e) {
-    console.log("Marker deleted. ID: " + e.relatedTarget._leaflet_id + ", Lat: " + e.relatedTarget._latlng.lat + ", Long: " + e.relatedTarget._latlng.lat);
+    //console.log("Marker deleted. ID: " + e.relatedTarget._leaflet_id + ", Lat: " + e.relatedTarget._latlng.lat + ", Long: " + e.relatedTarget._latlng.lat);
     markerGroup.removeLayer(e.relatedTarget._leaflet_id);
     const index = markers.findIndex(p => p.ID == e.relatedTarget._leaflet_id);
     markers.splice(index, 1);
 }
 
 function dragEndMarkerHandler(e) {
-    console.log("Draging of marker ended. ID is " + e.target._leaflet_id + ". New position is " + e.target._latlng.lat + "," + e.target._latlng.lng);
+    //console.log("Draging of marker ended. ID is " + e.target._leaflet_id + ". New position is " + e.target._latlng.lat + "," + e.target._latlng.lng);
     const index = markers.findIndex(p => p.ID == e.target._leaflet_id);
     markers[index] = {"ID": e.target._leaflet_id, "lat": e.target._latlng.lat, "lng": e.target._latlng.lng};
-    console.log("Markers array updated");
+    //console.log("Markers array updated");
 }
 
 
@@ -878,8 +945,8 @@ function GetRouteCoords(wps)
 
 
     var points = locs.join('&');
-    const apiUrl = `https://graphhopper.com/api/1/route?${points}&profile=bike&key=${apiKey}&instructions=false`;
-    console.log(apiUrl);
+    const apiUrl = `https://graphhopper.com/api/1/route?${points}&profile=${routingProfile}&key=${apiKey}&instructions=false&elevation=true&details=road_class&details=surface`;
+    //console.log(apiUrl);
 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -892,36 +959,38 @@ function GetRouteCoords(wps)
             const response = JSON.parse(xhr.responseText);
             var RemainingCredits = xhr.getResponseHeader('X-RateLimit-Remaining');
             var Cost = xhr.getResponseHeader('X-RateLimit-Credits');
-            console.log('Crédits restants : ' + RemainingCredits);
+            //console.log('Crédits restants : ' + RemainingCredits);
 
-            const coordinates = DecodePolyline(response.paths[0].points);  //Il ne devrait y avoir qu'un seul path dans la réponse!
-            const snappedwps = DecodePolyline(response.paths[0].snapped_waypoints);
+            //const coordinatesOld = DecodePolyline(response.paths[0].points);  //Il ne devrait y avoir qu'un seul path dans la réponse!
+            const coordinates = DecodePath(response.paths[0].points, true);  //Il ne devrait y avoir qu'un seul path dans la réponse!
+            //const snappedwpsOld = DecodePolyline(response.paths[0].snapped_waypoints);
+            const snappedwps = DecodePath(response.paths[0].snapped_waypoints, true);
 
             var res = [];
             var idx = 0;
             var previdx = 0;
             var found = false;
 
-            for(i = 0; i < snappedwps.length - 1; i++)
+            for(i = 0; i < snappedwps[0].length - 1; i++)
             {
-                for(j = 0; j < coordinates.length; j++)
+                for(j = 0; j < coordinates[0].length; j++)
                 {
-                    if(snappedwps[i+1].lat === coordinates[j].lat && snappedwps[i+1].lng === coordinates[j].lng)
+                    if(snappedwps[0][i+1].lat === coordinates[0][j].lat && snappedwps[0][i+1].lng === coordinates[0][j].lng)
                     {
                         idx = j;
                         found = true;
-                        break;
+                        break; 
                     }
                 }
                 if(found === false)
                     reject("Snapped waypoint non trouvé dans le tableau coordinates");
 
-                res.push(coordinates.slice(previdx, idx + 1));
+                res.push({"coords" : coordinates[0].slice(previdx, idx + 1), "elev" : coordinates[1].slice(previdx, idx + 1)});
                 previdx = idx;
             }
 
-
-            resolve(res);
+            console.log(response.paths[0].details.road_class[0][2] + ", " + response.paths[0].details.surface[0][2]);
+            resolve({"points" : res, "distance" : response.paths[0].distance, "road_class" : response.paths[0].details.road_class[0][2], "surface" : response.paths[0].details.surface[0][2]});
 
         } else
             reject('Erreur lors de la requête:', xhr.statusText);
@@ -1009,10 +1078,136 @@ function Decode (str, precision)
     return coordinates;
 };
 
+function DecodePath (encoded, is3D)
+{
+    var len = encoded.length;
+    var index = 0;
+    var latlng = [];
+    var elev = [];
+    var array = [];
+    var lat = 0;
+    var lng = 0;
+    var ele = 0;
+    //var latlngs = new Array(coords.length);
+
+    while (index < len) {
+        var b;
+        var shift = 0;
+        var result = 0;
+        do {
+            b = encoded.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+        } while (b >= 0x20);
+        var deltaLat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+        lat += deltaLat;
+
+        shift = 0;
+        result = 0;
+        do {
+            b = encoded.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+        } while (b >= 0x20);
+        var deltaLon = ((result & 1) ? ~(result >> 1) : (result >> 1));
+        lng += deltaLon;
+
+        if (is3D) {
+            // elevation
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            var deltaEle = ((result & 1) ? ~(result >> 1) : (result >> 1));
+            ele += deltaEle;
+            //array.push([lat * 1e-5, lng * 1e-5, ele / 100]);
+            latlng.push(new L.LatLng(lat * 1e-5, lng * 1e-5));
+            elev.push(ele / 100);
+        } else
+        {
+            latlng.push(new L.LatLng(lat * 1e-5, lng * 1e-5));
+            elev.push(0);
+            //array.push([lat * 1e-5, lng * 1e-5]);
+        }
+    }
+    // var end = new Date().getTime();
+    // console.log("decoded " + len + " coordinates in " + ((end - start) / 1000) + "s");
+    return [latlng, elev];
+};
+
+function UpdateDistances(routeCoords)
+{
+    var totalDistance = 0;
+    var totalMinutes = 0;
+    var fastDistance = 0;
+    var fastMinutes = 0;
+    var principDistance = 0;
+    var principMinutes = 0;
+    var secondDistance = 0;
+    var secondMinutes = 0;
+    var cheminDistance = 0;
+    var cheminMinutes = 0;
+    var unsupported = 0;
+    var unsupportedMinutes = 0;
+
+    for(i = 0; i < routeCoords.length; i++)
+    {
+        if(routeCoords[i].road_class == "residential" || routeCoords[i].road_class == "primary" || routeCoords[i].road_class == "service" || routeCoords[i].road_class == "unclassified")
+            secondDistance += routeCoords[i].distance / 1000;
+
+        else if(routeCoords[i].road_class == "secondary" || routeCoords[i].road_class == "tertiary")
+            principDistance += routeCoords[i].distance / 1000;
+
+        else if(routeCoords[i].road_class == "motorway" || routeCoords[i].road_class == "trunk")
+            fastDistance += routeCoords[i].distance / 1000;
+
+        else if(routeCoords[i].road_class == "path" || routeCoords[i].road_class == "track" || routeCoords[i].road_class == "cycleway")
+            cheminDistance += routeCoords[i].distance / 1000;
+
+        else
+            {
+                alert("Road_class unsuported: " + routeCoords[i].road_class + "  " + routeCoords[i].surface)
+                unsupported += routeCoords[i].distance / 1000;
+            }
+    }
+
+    fastMinutes = fastDistance * 60 / 100; //(moyenne 100km/h)
+    principMinutes = principDistance * 60 / 60; //(moyenne 60km/h)
+    secondMinutes = secondDistance * 60 / 25; //(moyenne 25km/h)
+    cheminMinutes = cheminDistance * 60 / 16; //(moyenne 16km/h)
+    unsupportedMinutes = unsupported * 60 / 25; //(moyenne 25km/h)
+
+    totalDistance = fastDistance + principDistance + secondDistance + cheminDistance + unsupported;
+    totalMinutes = fastMinutes + principMinutes + secondMinutes + cheminMinutes + unsupportedMinutes;
+
+    document.getElementById('dist-princip-value').innerText = principDistance.toFixed(2);
+    document.getElementById('dist-second-value').innerText = secondDistance.toFixed(2);
+    document.getElementById('dist-path-value').innerText = cheminDistance.toFixed(2);
+    document.getElementById('dist-total-value').innerText = totalDistance.toFixed(2);
+
+    document.getElementById('time-fast-value').innerText = convertMinutesToHours(fastMinutes);
+    document.getElementById('time-princip-value').innerText = convertMinutesToHours(principMinutes);
+    document.getElementById('time-second-value').innerText = convertMinutesToHours(secondMinutes);
+    document.getElementById('time-path-value').innerText = convertMinutesToHours(cheminMinutes);
+    document.getElementById('time-total-value').innerText = convertMinutesToHours(totalMinutes);
+}
+
+function convertMinutesToHours(minutes) 
+{
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = parseInt(minutes % 60);
+    // Ajouter un zéro devant les minutes si nécessaire
+    const formattedMinutes = remainingMinutes < 10 ? '0' + remainingMinutes : remainingMinutes;
+    return `${hours}:${formattedMinutes}`;
+}
+
 //*************************************/
 
 //*************************************/
-var downloadOSMData = function (fileName, mimeType) 
+var downloadOSMData = function (fileName) 
 {
     var overpassQuery = `[out:json][timeout:60];
     area[name="Moselle"]->.moselleArea;
@@ -1051,7 +1246,7 @@ var downloadOSMData = function (fileName, mimeType)
 
     // URL de l'API Overpass
     var overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
-    console.log("Overpass URL:", overpassUrl);
+    //console.log("Overpass URL:", overpassUrl);
 
     fetch(overpassUrl)
     .then(response => {
@@ -1096,7 +1291,6 @@ var downloadOSMData = function (fileName, mimeType)
             fileContent += '\t</ways>\n</osmdata>';
 
         //Constitution du fichier et download
-        var fileName = 'OSM_Data.xml';
         var mimeType = 'application/xml';
 
         var a = document.createElement('a');
