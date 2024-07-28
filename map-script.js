@@ -1,4 +1,4 @@
-const Version = '0.9.0 (2024-05-26)'
+const Version = '0.9.1 (2024-07-28)'
 
 
 //Sample GPX as string for debugging purposes
@@ -131,7 +131,8 @@ var CustomControl = L.Control.extend({
         var buttonDownloadGPX = L.DomUtil.create('button', 'custom-control-button2', container);
         buttonDownloadGPX.innerHTML = 'Télécharger fichier GPX';
         buttonDownloadGPX.onclick = function() {
-            downloadTrack('track.gpx', 'text/csv;encoding:utf-8');
+            var filename = 'GPX_' + getCurrentDateTimeFormated() + '.gpx';
+            downloadTrack(filename, 'text/csv;encoding:utf-8');
         };
 
         var buttonImportProject = L.DomUtil.create('button', 'custom-control-button', container);
@@ -143,7 +144,8 @@ var CustomControl = L.Control.extend({
         var buttonDownloadProject = L.DomUtil.create('button', 'custom-control-button', container);
         buttonDownloadProject.innerHTML = 'Télécharger projet';
         buttonDownloadProject.onclick = function() {
-            downloadProject('Trail_Webmap_Project.twp', 'text/csv;encoding:utf-8');
+            var filename = 'TWP_' + getCurrentDateTimeFormated() + '.twp';
+            downloadProject(filename, 'text/csv;encoding:utf-8');
         };
 
         buttonDisplayOSMData = L.DomUtil.create('button', 'custom-control-button', container);
@@ -1124,11 +1126,11 @@ function DecodePath (encoded, is3D)
             var deltaEle = ((result & 1) ? ~(result >> 1) : (result >> 1));
             ele += deltaEle;
             //array.push([lat * 1e-5, lng * 1e-5, ele / 100]);
-            latlng.push(new L.LatLng(lat * 1e-5, lng * 1e-5));
+            latlng.push(new L.LatLng((lat * 1e-5).toPrecision(8), (lng * 1e-5).toPrecision(8)));
             elev.push(ele / 100);
         } else
         {
-            latlng.push(new L.LatLng(lat * 1e-5, lng * 1e-5));
+            latlng.push(new L.LatLng((lat * 1e-5).toPrecision(8), (lng * 1e-5).toPrecision(8)));
             elev.push(0);
             //array.push([lat * 1e-5, lng * 1e-5]);
         }
@@ -1205,6 +1207,21 @@ function convertMinutesToHours(minutes)
 }
 
 //*************************************/
+
+function getCurrentDateTimeFormated()
+{
+    const padZero = (num) => num.toString().padStart(2, '0');
+
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = padZero(date.getMonth() + 1); // Les mois sont de 0 à 11
+    const day = padZero(date.getDate());
+    const hours = padZero(date.getHours());
+    const minutes = padZero(date.getMinutes());
+    const seconds = padZero(date.getSeconds());
+    
+    return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+}
 
 //*************************************/
 var downloadOSMData = function (fileName) 
