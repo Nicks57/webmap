@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">
+<wpt lat="49.15000526286166" lon="6.932594770780997">
+	<name>Passage difficile avec cailloux</name>
+	<desc></desc>
+</wpt>
 <wpt lat="48.87781065100879" lon="7.430185675621034">
 	<name>Banc avec jolie vue sur champs</name>
 	<desc></desc>
