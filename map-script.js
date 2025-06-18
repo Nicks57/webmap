@@ -1,4 +1,4 @@
-const Version = '0.9.1 (2024-07-28)'
+const Version = '0.10.0 (2025-06-18)'
 
 
 //Sample GPX as string for debugging purposes
@@ -280,15 +280,19 @@ var downloadTrack = function (fileName, mimeType) {
     if(routeCoords.length !== 0)
     {
         for(let i = 0; i < routeCoords.length; i++) {
-            for (let j = 0; j < routeCoords[i].coords.length; j++)
-                coord.push(routeCoords[i].coords[j]);
+            for (let j = 0; j < routeCoords[i].coords.length; j++) {
+                let latlng = routeCoords[i].coords[j];       // [lat, lng]
+                let elev = routeCoords[i].elevation[j];      // number
+                coord.push({lat:latlng.lat, lng:latlng.lng, elev:elev});    // [lat, lng, elev]
+            }
         }
     }
     else
         console.log("no routes to export");
 
     var timestamp = new Date().toLocaleString('en-GB');
-    gpxcontent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1"  creator="Nicks" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n';
+    gpxcontent = '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n<gpx xmlns="https://www.topografix.com/GPX/1/1" version="1.1" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">\n';
+    gpxcontent += '<metadata>\n\t<name>' + timestamp + '</name>\n\t<author>\n\t\t<name>Trail Webmap</name>\n\t\t<link href="https://nicks57.github.io/webmap/"/>\n\t</author>\n</metadata>\n';
 
     for (var i = 0; i < markers.length; i++) {
         gpxcontent += '<wpt lat="' + markers[i].lat + '" lon="' + markers[i].lng + '">\n\t<name></name>\n\t<desc></desc>\n</wpt>\n';
@@ -298,7 +302,7 @@ var downloadTrack = function (fileName, mimeType) {
         gpxcontent += "<trk>\n\t<name>" + timestamp + "</name>\n";
         gpxcontent += "\t<trkseg>\n";
         for (var i = 0; i < coord.length; i++) {
-            gpxcontent += '\t<trkpt lat="' + coord[i].lat + '" lon="' + coord[i].lng + '"></trkpt>\n';
+            gpxcontent += '\t<trkpt lat="' + coord[i].lat + '" lon="' + coord[i].lng + '">\n\t\t<ele>' + coord[i].elev + '</ele>\n\t</trkpt>\n';
         }
         gpxcontent += '\t</trkseg>\n</trk>\n';
     }
@@ -473,16 +477,25 @@ var fileArray = [
     ["tracks/db/OK_Anytime.gpx", "#159917"],
     ["tracks/db/OK_OnlyDry.gpx", "#f2ab11"],
     ["tracks/db/Tolerated.gpx", "#f70a0a"],
-    ["tracks/db/Verboten.gpx", "#000000"]
+    ["tracks/db/Verboten.gpx", "#000000"],
+    ["tracks/db/TET_France.gpx", "#000000"]
 ];
 
 for (const file of fileArray) {
-    new L.GPXHelper(file[0], {
-        polyline_options : {color: file[1], weight: 7, interactive: false}
+    const path = file[0];
+    const color = file[1];
+
+    const gpxLayer = new L.GPXHelper(path, {
+        polyline_options : {color: color, weight: 7, interactive: false}
     }).on('loaded', function(e) {
         var gpx = e.target;
         layerControl.addOverlay(gpx, gpx.get_name());
-    }).addTo(map);
+    })
+
+    // Add to map only if it's not TET_France.gpx
+    if (!path.includes("TET_France.gpx")) {
+        gpxLayer.addTo(map);
+    }
 }
 
 //Add Markers
